@@ -14,14 +14,6 @@ const registroSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
-    subdominio: {
-        type: String,
-        required: true,
-    },
-    dominio: {
-        type: String,
-        required: true,
-    },
     ip: {
         type: String,
         required: true,

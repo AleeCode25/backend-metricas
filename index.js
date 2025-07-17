@@ -129,20 +129,6 @@ app.post("/verificacion", async (req, res) => {
   console.log("🐛 DEBUG: leadId extraído del webhook:", leadId);
   // ------------------------------------
 
-  if (kommoId === "mctitan") {
-    if (leadId) {
-      const mensaje = await buscarMensaje(leadId, kommoId, token);
-
-      if (mensaje) {
-        console.log("✅ Mensaje final encontrado:", mensaje);
-        // podés usarlo para guardar, verificar, etc.
-      } else {
-        console.log("❌ No se encontró ningún mensaje en lead ni contacto.");
-      }
-    }
-
-  }
-
   // NOTE: La función buscarMensaje está definida aquí, pero solo es llamada en el bloque de mctitan.
   // La lógica para otras cuentas Kommo (como miami) va por el path de obtenerContactoDesdeLead y la lectura de custom_fields_values.
   async function buscarMensaje(leadId, kommoId, token, reintentos = 3) {

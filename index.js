@@ -68,7 +68,7 @@ app.post("/guardar", async (req, res) => {
     // 3. Evitar duplicados si el ID ya existe
     if (kommoId === "opendrust090") {
       existente = await RegistroAlan.findOne({ id });
-    } else if (kommoId === "") {
+    } else if (kommoId === "urbanjadeok") {
       existente = await RegistroRochy.findOne({ id });
     } 
 
@@ -89,7 +89,7 @@ app.post("/guardar", async (req, res) => {
       });
 
       await nuevoRegistro.save();
-    } else if (kommoId === "") {
+    } else if (kommoId === "urbanjadeok") {
       nuevoRegistro = new RegistroRochy({
         id,
         token,
@@ -172,8 +172,8 @@ app.post("/verificacion", async (req, res) => {
 
       if (kommoId === "opendrust090") {
         Modelo = RegistroAlan;
-      } else if (kommoId === "") {
-        Modelo = RegistroLuchito;
+      } else if (kommoId === "urbanjadeok") {
+        Modelo = RegistroRochy;
       }
 
       try {

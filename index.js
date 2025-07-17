@@ -277,7 +277,7 @@ app.post("/verificacion", async (req, res) => {
             const pixelEndpointUrl = `https://graph.facebook.com/v18.0/${registro.pixel}/events?access_token=${registro.token}`;
 
             const eventData = {
-              event_name: "Lead",
+              event_name: "LeadCorrectoJoker",
               event_id,
               event_time: Math.floor(Date.now() / 1000),
               action_source: "website",

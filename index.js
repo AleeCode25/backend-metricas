@@ -45,13 +45,13 @@ const isValidIP = (ip) => {
 
 app.post("/guardar", async (req, res) => {
   try {
-    const { id, token, pixel, subdominio, dominio, ip, fbclid, mensaje } =
+    const { id, token, pixel, ip, fbclid, mensaje } =
       req.body;
 
     const { kommoId } = req.query;
 
     // 1. Verificación de campos obligatorios
-    if (!id || !token || !pixel || !subdominio || !dominio || !ip) {
+    if (!id || !token || !pixel || !ip) {
       return res.status(400).json({ error: "Faltan campos obligatorios" });
     }
 
@@ -83,8 +83,6 @@ app.post("/guardar", async (req, res) => {
         id,
         token,
         pixel,
-        subdominio,
-        dominio,
         ip,
         fbclid,
         mensaje,
@@ -96,8 +94,6 @@ app.post("/guardar", async (req, res) => {
         id,
         token,
         pixel,
-        subdominio,
-        dominio,
         ip,
         fbclid,
         mensaje,
@@ -281,7 +277,7 @@ app.post("/verificacion", async (req, res) => {
               event_id,
               event_time: Math.floor(Date.now() / 1000),
               action_source: "website",
-              event_source_url: `https://${registro.subdominio}.${registro.dominio}`,
+              event_source_url: `https://${kommoId}.kommo.com/`,
               user_data: {
                 client_ip_address: registro.ip,
                 client_user_agent: req.headers["user-agent"],

@@ -3,6 +3,9 @@ const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
 const RegistroAlan = require("./models/RegistroAlan");
 const RegistroRochy = require("./models/RegistroRochy");
+const RegistroNeon = require("./models/RegistroNeon");
+const RegistroDobleAs = require("./models/RegistroDobleAs");
+const RegistroJoker = require("./models/RegistroJoker");
 const axios = require('axios');
 const cookieParser = require("cookie-parser");
 
@@ -70,7 +73,15 @@ app.post("/guardar", async (req, res) => {
       existente = await RegistroAlan.findOne({ id });
     } else if (kommoId === "urbanjadeok") {
       existente = await RegistroRochy.findOne({ id });
-    } 
+    } else if (kommoId === "neonvip") {
+      existente = await RegistroNeon.findOne({ id });
+    } else if (kommoId === "kommo202513") {
+      existente = await RegistroDobleAs.findOne({ id });
+    } else if (kommoId === "conline") {
+      existente = await RegistroJoker.findOne({ id });
+    } else {
+      return res.status(400).json({ error: "ID de Kommo no reconocido" });
+    }
 
     if (existente) {
       return res.status(409).json({ error: "Este ID ya fue registrado" });
@@ -100,9 +111,48 @@ app.post("/guardar", async (req, res) => {
       });
 
       await nuevoRegistro.save();
-    } 
+    }  else if (kommoId === "neonvip") {
+      nuevoRegistro = new RegistroNeon({
+        id,
+        token,
+        pixel,
+        ip,
+        fbclid,
+        mensaje,
+      });
+
+      await nuevoRegistro.save();
+    } else if (kommoId === "kommo202513") {
+      nuevoRegistro = new RegistroDobleAs({
+        id,
+        token,
+        pixel,
+        ip,
+        fbclid,
+        mensaje,
+      });
+
+      await nuevoRegistro.save();
+    } else if (kommoId === "conline") {
+      nuevoRegistro = new RegistroJoker({
+        id,
+        token,
+        pixel,
+        ip,
+        fbclid,
+        mensaje,
+      });
+
+      await nuevoRegistro.save();
+    } else {
+      return res.status(400).json({ error: "ID de Kommo no reconocido" });
+    }
 
     res.status(201).json({ mensaje: "Datos guardados con éxito" });
+
+    console.log("✅ Registro guardado:", nuevoRegistro);
+    console.log("kommoId:", kommoId); 
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Error interno al guardar los datos" });
@@ -174,6 +224,21 @@ app.post("/verificacion", async (req, res) => {
         Modelo = RegistroAlan;
       } else if (kommoId === "urbanjadeok") {
         Modelo = RegistroRochy;
+      } else if (kommoId === "neonvip") {
+        Modelo = RegistroNeon;
+      } else if (kommoId === "kommo202513") {
+        Modelo = RegistroDobleAs;
+      } else if (kommoId === "conline") {
+        Modelo = RegistroJoker;
+      } else {
+        return res.status(400).json({
+          error: "ID de Kommo no reconocido",
+          detalles: {
+            tipo: 'kommo_id_no_reconocido',
+            mensaje: `El ID de Kommo '${kommoId}' no es reconocido`,
+            timestamp: new Date()
+          }
+        });
       }
 
       try {

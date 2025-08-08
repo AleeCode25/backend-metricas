@@ -65,6 +65,8 @@ app.post("/crearusuario", async (req, res) => {
 
     console.log("Respuesta de la API:", apiResponse);
 
+    apiResponse = apiResponse.data;
+
     if (apiResponse.success) {
       console.log(`✅ Usuario creado exitosamente. Login: ${apiResponse.id}, Password: ${apiResponse.password}`);
       

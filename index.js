@@ -126,17 +126,28 @@ app.post("/crearusuario", async (req, res) => {
             ]
           };
 
-          // Enviamos la solicitud PATCH a la API de Kommo para actualizar el lead
-          await axios.patch(`https://${kommoId}.kommo.com/api/v4/leads/${leadId}`, dataToUpdate, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
-          });
+          try {
+            const leadNuevo = await axios.patch(`https://${kommoId}.kommo.com/api/v4/leads/${leadId}`, dataToUpdate, {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              }
+            });
 
-          console.log("✅ Lead actualizado exitosamente con el nuevo mensaje.");
+            console.log("llamada cruda: ", leadNuevo);
 
-          return res.status(200).json({ status: "ok", mensaje: "Lead actualizado con la respuesta automática." });
+            console.log("✅ Lead actualizado exitosamente con el nuevo mensaje.");
+
+            return res.status(200).json({ status: "ok", mensaje: "Lead actualizado con la respuesta automática." });
+
+          } catch (error) {
+            // Si ocurre un error al actualizar el lead, lo registramos y respondemos con un error 500.
+            console.error("❌ Error al actualizar el lead con el nuevo mensaje:", error.response?.data || error.message);
+            return res.status(500).json({
+              error: "Error al actualizar el lead con el nuevo mensaje.",
+              detalles: error.message,
+            });
+          }
 
         } else {
           // Si la API no devuelve `success: true`, lo manejamos como un error.

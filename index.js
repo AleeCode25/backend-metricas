@@ -83,60 +83,42 @@ app.post("/crearusuario", async (req, res) => {
     if (apiData.success) {
       const loginGenerado = apiData.id;
       const passwordGenerada = apiData.password;
-      console.log(`✅ Usuario creado. Login: ${loginGenerado}`);
+      console.log(`✅ Usuario creado en sistema externo. Login: ${loginGenerado}`);
 
-      // Preparamos el texto que irá en la descripción de la tarea
-      const textoDeLaTarea = `Enviar al cliente sus credenciales de acceso:\n\n👤 **Usuario:** ${loginGenerado}\n🔒 **Contraseña:** ${passwordGenerada}`;
+      // Creamos el mensaje que se va a enviar
+      const mensajeDeRespuesta = `Hola, tu usuario es: ${loginGenerado} y tu contraseña es: ${passwordGenerada}.`;
 
-      const headersKommo = {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
+      // Preparamos los datos para Kommo USANDO EL FIELD_ID
+      const dataToUpdate = {
+        custom_fields_values: [
+          {
+            field_id: MENSAJEENVIAR_FIELD_ID, // <-- ¡ESTA ES LA CORRECCIÓN CLAVE!
+            values: [{ value: mensajeDeRespuesta }]
+          }
+        ]
       };
 
-      try {
-        // === NUEVA LÓGICA SIMPLIFICADA: TODO EN UNA SOLA TAREA ===
-        console.log(`📝 Creando una única tarea para el lead ${leadId}...`);
+      console.log(`🔄  Actualizando lead ${leadId} con el nuevo mensaje...`);
+      await axios.patch(`https://${kommoId}.kommo.com/api/v4/leads/${leadId}`, dataToUpdate, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
 
-        // Preparamos TODO el texto que irá directamente en la tarea.
-        // Usamos saltos de línea (\n) para que se vea ordenado.
-        const textoCompletoDeLaTarea = `Enviar credenciales al cliente.\n\n👤 Usuario: ${loginGenerado}\n🔒 Contraseña: ${passwordGenerada}`;
-
-        // Fecha límite para la tarea (ej. en 1 hora)
-        const fechaLimite = Math.floor(Date.now() / 1000) + 3600;
-
-        // Preparamos el payload con el texto completo.
-        const tareaPayload = [{
-          text: textoCompletoDeLaTarea,
-          entity_id: parseInt(leadId), // Aseguramos que el ID sea un número
-          entity_type: "leads",
-          complete_till: fechaLimite,
-        }];
-        
-        // Hacemos UNA SOLA llamada a la API para crear la tarea
-        await axios.post(`https://${kommoId}.kommo.com/api/v4/tasks`, tareaPayload, { headers: headersKommo });
-
-        console.log("✅ Tarea creada exitosamente con toda la información.");
-        
-        return res.status(200).json({ 
-          status: "ok", 
-          mensaje: "Usuario creado y tarea generada para el vendedor." 
-        });
-
-      } catch (kommoError) {
-        // Mejoramos el log para ver el detalle exacto de la validación si vuelve a fallar
-        console.error("❌ Error durante la creación de la tarea en Kommo:", JSON.stringify(kommoError.response?.data, null, 2) || kommoError.message);
-        
-        return res.status(200).json({ 
-          status: "ok_con_error_kommo", 
-          mensaje: "Usuario creado, pero falló la creación de la tarea en Kommo."
-        });
-      }
+      console.log("✅ Lead actualizado exitosamente en Kommo.");
+      return res.status(200).json({ status: "ok", mensaje: "Usuario creado y lead actualizado." });
 
     } else {
-      console.error("❌ Error de la API externa:", apiData.errorMessage);
-      return res.status(400).json({ error: "Fallo en la creación del usuario.", detalles: apiData.errorMessage });
+      // Si la creación del usuario falla
+      const errorMessage = apiData.errorMessage || "La API externa no devolvió un error específico.";
+      console.error("❌ Error de la API externa:", errorMessage);
+      return res.status(400).json({
+        error: "Fallo en la creación del usuario.",
+        detalles: errorMessage
+      });
     }
-  }  catch (error) {
+  } catch (error) {
     // Si falla cualquier llamada de red (axios) o hay otro error
     const errorDetails = error.response?.data || error.message;
     console.error("❌ Error fatal en la ruta /crearusuario:", errorDetails);

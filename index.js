@@ -50,7 +50,7 @@ app.post("/crearusuario", async (req, res) => {
   try {
     const { kommoId, token } = req.query;
 
-    const data = {
+    const dataToSend = {
       group: 5,
       sended: true,
       name: "",
@@ -60,15 +60,39 @@ app.post("/crearusuario", async (req, res) => {
       api_token: "c9a837bc0cfe1113a8867b7d105ab0087b59b785c0a2d28ac2717ce520931ce2"
     };
 
-    const nuevoUsuario = await axios.post("https://admin.reysanto.com/index.php?act=admin&area=createuser", data);
+    const apiResponse = await axios.post(`https://admin.reysanto.com/index.php?act=admin&area=createuser&response=js`, dataToSend);
 
-    console.log("Usuario puro : ", nuevoUsuario)
-    console.log("✅ Usuario creado con éxito:", nuevoUsuario.data);
-    return res.status(200).json({ status: "ok", mensaje: "Usuario creado exitosamente" });
+    if (apiResponse.success) {
+      const loginGenerado = apiResponse.id;
+      const passwordGenerada = apiResponse.password;
+
+      console.log(`✅ Usuario creado exitosamente.`);
+      console.log(`Login: ${loginGenerado}`);
+      console.log(`Contraseña: ${passwordGenerada}`);
+
+      // Puedes almacenar estos datos en tu base de datos aquí si lo necesitas
+      // await RegistroAlan.create({ id: idGenerado, login: loginGenerado, ... });
+
+      return res.status(200).json({
+          status: "ok",
+          mensaje: "Usuario creado exitosamente",
+          login: loginGenerado,
+          password: passwordGenerada
+      });
+  } else {
+      console.error("❌ La API devolvió un error:", responseData.errorMessage || "Error desconocido");
+      return res.status(400).json({
+          error: "Fallo en la creación del usuario",
+          detalles: responseData.errorMessage || "La API no indicó un error específico."
+      });
+  }
 
   } catch (error) {
-    console.error("❌ Error al crear el usuario:", error.response?.data || error.message);
-    return res.status(500).json({ error: "Error interno al crear el usuario", detalles: error.message });
+    console.error("❌ Error en la ruta /crearusuario:", error.response?.data || error.message);
+    return res.status(500).json({
+      error: "Error interno del servidor",
+      detalles: error.message
+    });
   }
 });
 

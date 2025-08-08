@@ -85,59 +85,58 @@ app.post("/crearusuario", async (req, res) => {
       const passwordGenerada = apiData.password;
       console.log(`✅ Usuario creado. Login: ${loginGenerado}`);
 
-      // Preparamos el mensaje para el cliente final
-      const mensajeParaUsuario = `¡Listo! Tu cuenta ha sido creada.\n\n👤 **Usuario:** ${loginGenerado}\n🔒 **Contraseña:** ${passwordGenerada}`;
+      // Preparamos el texto que irá en la descripción de la tarea
+      const textoDeLaTarea = `Enviar al cliente sus credenciales de acceso:\n\n👤 **Usuario:** ${loginGenerado}\n🔒 **Contraseña:** ${passwordGenerada}`;
 
-      // Preparamos los headers que usaremos en las siguientes llamadas a Kommo
       const headersKommo = {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       };
 
       try {
-        // ⭐️ PASO NUEVO 1: OBTENER EL ID DEL CHAT DEL LEAD
-        console.log(`🔎 Buscando chats activos para el lead ${leadId}...`);
-        const talksResponse = await axios.get(`https://${kommoId}.kommo.com/api/v4/leads/${leadId}/talks`, { headers: headersKommo });
-
-        console.log(talksResponse, "← este es el objeto que devuelve Kommo con los chats del lead");
+        // ⭐️ NUEVA LÓGICA: CREAR UNA TAREA EN LUGAR DE ENVIAR UN MENSAJE
+        console.log(`📝 Creando tarea para el lead ${leadId}...`);
         
-        // Obtenemos el ID del primer chat que encontremos
-        const talkId = talksResponse.data?._embedded?.talks?.[0]?.id;
+        // La tarea se debe completar dentro de los próximos 5 minutos
+        const fechaLimite = Math.floor(Date.now() / 1000) + (5 * 60);
 
-        // ⭐️ PASO NUEVO 2: ENVIAR EL MENSAJE AL CHAT
-        if (talkId) {
-          console.log(`💬 Chat encontrado (ID: ${talkId}). Enviando mensaje al usuario...`);
-          
-          const mensajePayload = {
-            text: mensajeParaUsuario,
-            type: "text" // El tipo de mensaje es texto plano
-          };
+        const tareaPayload = [{
+          text: "Enviar credenciales de acceso al cliente", // Título de la tarea
+          entity_id: leadId,
+          entity_type: "leads",
+          complete_till: fechaLimite,
+          // El texto largo con los datos va en la descripción, que se crea con una nota vinculada
+          // Esta es la forma oficial de Kommo de crear tareas con descripción.
+        }];
+        
+        // Creamos la tarea
+        const tareaResponse = await axios.post(`https://${kommoId}.kommo.com/api/v4/tasks`, tareaPayload, { headers: headersKommo });
+        console.log("✅ Tarea base creada exitosamente.");
 
-          // Hacemos la llamada para enviar el mensaje
-          await axios.post(`https://${kommoId}.kommo.com/api/v4/talks/${talkId}/messages`, mensajePayload, { headers: headersKommo });
-          
-          console.log("✅ Mensaje enviado exitosamente al chat del usuario.");
+        // Creamos una nota para que sirva de descripción para la tarea
+        const notaPayload = [{
+            note_type: 'common', // Puedes cambiarlo a 'task_result' si prefieres
+            params: {
+                text: textoDeLaTarea,
+                // Vinculamos esta nota a la tarea que acabamos de crear
+                service: `Tarea Creada: ${tareaResponse.data._embedded.tasks[0].id}`
+            }
+        }];
+        await axios.post(`https://${kommoId}.kommo.com/api/v4/leads/${leadId}/notes`, notaPayload, { headers: headersKommo });
+        console.log("📝 Descripción de la tarea añadida como nota.");
 
-        } else {
-          // Esto puede pasar si el lead se creó por un medio que no sea un chat (ej. un formulario)
-          console.log("⚠️ No se encontró un chat activo para este lead. No se envió mensaje al usuario, pero el proceso continúa.");
-          // Podrías crear una nota interna para avisar al vendedor
-        }
-
-        return res.status(200).json({ status: "ok", mensaje: "Usuario creado y mensaje enviado al lead." });
+        return res.status(200).json({ status: "ok", mensaje: "Usuario creado y tarea generada para el vendedor." });
 
       } catch (kommoError) {
-        console.error("❌ Error durante la comunicación con Kommo (enviando mensaje o nota):", kommoError.response?.data || kommoError.message);
-        // Devolvemos 200 para que Kommo no reintente, ya que el usuario SÍ se creó.
-        return res.status(200).json({ status: "ok_con_error_kommo", mensaje: "Usuario creado, pero falló el envío de mensaje en Kommo."});
+        console.error("❌ Error durante la creación de la tarea en Kommo:", kommoError.response?.data || kommoError.message);
+        return res.status(200).json({ status: "ok_con_error_kommo", mensaje: "Usuario creado, pero falló la creación de la tarea en Kommo."});
       }
 
     } else {
-      // Si la creación del usuario falla
       console.error("❌ Error de la API externa:", apiData.errorMessage);
       return res.status(400).json({ error: "Fallo en la creación del usuario.", detalles: apiData.errorMessage });
     }
-  } catch (error) {
+  }  catch (error) {
     // Si falla cualquier llamada de red (axios) o hay otro error
     const errorDetails = error.response?.data || error.message;
     console.error("❌ Error fatal en la ruta /crearusuario:", errorDetails);

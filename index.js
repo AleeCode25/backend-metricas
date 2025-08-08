@@ -46,7 +46,7 @@ const isValidIP = (ip) => {
   return regex.test(ip);
 };
 
-app.get("/crearusuario", async (req, res) => {
+app.post("/crearusuario", async (req, res) => {
   try {
     const { kommoId, token } = req.query;
 
@@ -61,16 +61,13 @@ app.get("/crearusuario", async (req, res) => {
     };
 
     const apiResponse = await axios.post(
-      "https://admin.reysanto.com/index.php?act=admin&area=createuser&response=js",
-      dataToSend,
-      {
-          headers: {
-              'Content-Type': 'application/json'
-          }
-      }
-  );
+      "https://admin.reysanto.com/index.php?act=admin&area=createuser&response=js", dataToSend);
 
     console.log("Respuesta de la API:", apiResponse);
+
+    if(apiResponse.success) {
+      console.log("✅ Usuario creado exitosamente.");
+    }
 
     /* if (apiResponse.success) {
       const loginGenerado = apiResponse.id;

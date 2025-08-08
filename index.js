@@ -109,15 +109,35 @@ app.post("/crearusuario", async (req, res) => {
         if (apiData.success) {
           console.log(`✅ Usuario creado exitosamente. Login: ${apiData.id}, Password: ${apiData.password}`);
 
-          // Devolvemos una respuesta clara con los datos generados.
-          return res.status(201).json({ // 201 Created es más apropiado para creaciones exitosas.
-            status: "ok",
-            mensaje: "Usuario creado exitosamente.",
-            usuario: {
-              login: apiData.id,
-              password: apiData.password,
-            },
+          let mensajeDeRespuesta = `Hola, tu usuario es: ${apiData.id} y tu contraseña es: ${apiData.password}.`;
+          console.log("➡️ Mensaje de respuesta generado:", mensajeDeRespuesta);
+
+          // Ahora, actualizamos el lead con el nuevo mensaje en el campo "mensajeenviar"
+          const dataToUpdate = {
+            custom_fields_values: [
+              {
+                field_name: "mensajeenviar",
+                values: [
+                  {
+                    value: mensajeDeRespuesta
+                  }
+                ]
+              }
+            ]
+          };
+
+          // Enviamos la solicitud PATCH a la API de Kommo para actualizar el lead
+          await axios.patch(`https://${kommoId}.kommo.com/api/v4/leads/${leadId}`, dataToUpdate, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
           });
+
+          console.log("✅ Lead actualizado exitosamente con el nuevo mensaje.");
+
+          return res.status(200).json({ status: "ok", mensaje: "Lead actualizado con la respuesta automática." });
+
         } else {
           // Si la API no devuelve `success: true`, lo manejamos como un error.
           const errorMessage = apiResponse.errorMessage || "La API no indicó un error específico.";

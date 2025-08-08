@@ -65,18 +65,18 @@ app.post("/crearusuario", async (req, res) => {
 
     console.log("Respuesta de la API:", apiResponse);
 
-    apiResponse = apiResponse.data;
+    const apiData = apiResponse.data;
 
-    if (apiResponse.success) {
-      console.log(`✅ Usuario creado exitosamente. Login: ${apiResponse.id}, Password: ${apiResponse.password}`);
+    if (apiData.success) {
+      console.log(`✅ Usuario creado exitosamente. Login: ${apiData.id}, Password: ${apiData.password}`);
       
       // Devolvemos una respuesta clara con los datos generados.
       return res.status(201).json({ // 201 Created es más apropiado para creaciones exitosas.
         status: "ok",
         mensaje: "Usuario creado exitosamente.",
         usuario: {
-          login: apiResponse.id,
-          password: apiResponse.password,
+          login: apiData.id,
+          password: apiData.password,
         },
       });
     } else {

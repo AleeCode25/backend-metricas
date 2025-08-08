@@ -47,7 +47,9 @@ const isValidIP = (ip) => {
 };
 
 app.post("/crearusuario", async (req, res) => {
+  console.log("🐛 DEBUG: Ruta /crearusuario iniciada");
   try {
+    console.log("entro en la ruta /crearusuario");
     const body = req.body;
     const { kommoId, token } = req.query;
     // --- LOGS DE DEPURACIÓN INICIANDO LA RUTA ---

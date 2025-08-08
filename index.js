@@ -83,40 +83,57 @@ app.post("/crearusuario", async (req, res) => {
     if (apiData.success) {
       const loginGenerado = apiData.id;
       const passwordGenerada = apiData.password;
-      console.log(`✅ Usuario creado en sistema externo. Login: ${loginGenerado}`);
+      console.log(`✅ Usuario creado. Login: ${loginGenerado}`);
 
-      // Creamos el mensaje que se va a enviar
-      const mensajeDeRespuesta = `Hola, tu usuario es: ${loginGenerado} y tu contraseña es: ${passwordGenerada}.`;
+      // Preparamos el mensaje para el cliente final
+      const mensajeParaUsuario = `¡Listo! Tu cuenta ha sido creada.\n\n👤 **Usuario:** ${loginGenerado}\n🔒 **Contraseña:** ${passwordGenerada}`;
 
-      // Preparamos los datos para Kommo USANDO EL FIELD_ID
-      const dataToUpdate = {
-        custom_fields_values: [
-          {
-            field_id: MENSAJEENVIAR_FIELD_ID, // <-- ¡ESTA ES LA CORRECCIÓN CLAVE!
-            values: [{ value: mensajeDeRespuesta }]
-          }
-        ]
+      // Preparamos los headers que usaremos en las siguientes llamadas a Kommo
+      const headersKommo = {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
       };
 
-      console.log(`🔄  Actualizando lead ${leadId} con el nuevo mensaje...`);
-      await axios.patch(`https://${kommoId}.kommo.com/api/v4/leads/${leadId}`, dataToUpdate, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      try {
+        // ⭐️ PASO NUEVO 1: OBTENER EL ID DEL CHAT DEL LEAD
+        console.log(`🔎 Buscando chats activos para el lead ${leadId}...`);
+        const talksResponse = await axios.get(`https://${kommoId}.kommo.com/api/v4/leads/${leadId}/talks`, { headers: headersKommo });
+        
+        // Obtenemos el ID del primer chat que encontremos
+        const talkId = talksResponse.data?._embedded?.talks?.[0]?.id;
 
-      console.log("✅ Lead actualizado exitosamente en Kommo.");
-      return res.status(200).json({ status: "ok", mensaje: "Usuario creado y lead actualizado." });
+        // ⭐️ PASO NUEVO 2: ENVIAR EL MENSAJE AL CHAT
+        if (talkId) {
+          console.log(`💬 Chat encontrado (ID: ${talkId}). Enviando mensaje al usuario...`);
+          
+          const mensajePayload = {
+            text: mensajeParaUsuario,
+            type: "text" // El tipo de mensaje es texto plano
+          };
+
+          // Hacemos la llamada para enviar el mensaje
+          await axios.post(`https://${kommoId}.kommo.com/api/v4/talks/${talkId}/messages`, mensajePayload, { headers: headersKommo });
+          
+          console.log("✅ Mensaje enviado exitosamente al chat del usuario.");
+
+        } else {
+          // Esto puede pasar si el lead se creó por un medio que no sea un chat (ej. un formulario)
+          console.log("⚠️ No se encontró un chat activo para este lead. No se envió mensaje al usuario, pero el proceso continúa.");
+          // Podrías crear una nota interna para avisar al vendedor
+        }
+
+        return res.status(200).json({ status: "ok", mensaje: "Usuario creado y mensaje enviado al lead." });
+
+      } catch (kommoError) {
+        console.error("❌ Error durante la comunicación con Kommo (enviando mensaje o nota):", kommoError.response?.data || kommoError.message);
+        // Devolvemos 200 para que Kommo no reintente, ya que el usuario SÍ se creó.
+        return res.status(200).json({ status: "ok_con_error_kommo", mensaje: "Usuario creado, pero falló el envío de mensaje en Kommo."});
+      }
 
     } else {
       // Si la creación del usuario falla
-      const errorMessage = apiData.errorMessage || "La API externa no devolvió un error específico.";
-      console.error("❌ Error de la API externa:", errorMessage);
-      return res.status(400).json({
-        error: "Fallo en la creación del usuario.",
-        detalles: errorMessage
-      });
+      console.error("❌ Error de la API externa:", apiData.errorMessage);
+      return res.status(400).json({ error: "Fallo en la creación del usuario.", detalles: apiData.errorMessage });
     }
   } catch (error) {
     // Si falla cualquier llamada de red (axios) o hay otro error

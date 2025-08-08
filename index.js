@@ -65,43 +65,37 @@ app.post("/crearusuario", async (req, res) => {
 
     console.log("Respuesta de la API:", apiResponse);
 
-    if(apiResponse.success) {
-      console.log("✅ Usuario creado exitosamente.");
-    }
-
-    return res.status(200).json({
-      status: "ok",
-      mensaje: "Usuario creado exitosamente",
-      apiResponse: apiResponse
-    });
-    /* if (apiResponse.success) {
-      const loginGenerado = apiResponse.id;
-      const passwordGenerada = apiResponse.password;
-
-      console.log(`✅ Usuario creado exitosamente.`);
-      console.log(`Login: ${loginGenerado}`);
-      console.log(`Contraseña: ${passwordGenerada}`);
-
-      return res.status(200).json({
+    if (apiResponse.success) {
+      console.log(`✅ Usuario creado exitosamente. Login: ${apiResponse.id}, Password: ${apiResponse.password}`);
+      
+      // Devolvemos una respuesta clara con los datos generados.
+      return res.status(201).json({ // 201 Created es más apropiado para creaciones exitosas.
         status: "ok",
-        mensaje: "Usuario creado exitosamente",
-        login: loginGenerado,
-        password: passwordGenerada
+        mensaje: "Usuario creado exitosamente.",
+        usuario: {
+          login: apiResponse.id,
+          password: apiResponse.password,
+        },
       });
     } else {
-      console.error("❌ La API devolvió un error:", apiResponse.errorMessage || "Error desconocido");
+      // Si la API no devuelve `success: true`, lo manejamos como un error.
+      const errorMessage = apiResponse.errorMessage || "La API no indicó un error específico.";
+      console.error("❌ La API devolvió un error:", errorMessage);
+      
       return res.status(400).json({
-        error: "Fallo en la creación del usuario",
-        detalles: apiResponse.errorMessage || "La API no indicó un error específico."
+        error: "Fallo en la creación del usuario en la plataforma externa.",
+        detalles: errorMessage,
       });
-    } */
-
+    }
   } catch (error) {
-    console.error("❌ Error en la ruta /crearusuario:", error.response?.data || error.message);
-    return res.status(500).json({ 
-      error: "Error interno del servidor", 
-      detalles: error.response?.data || error.message 
-  });
+    // Este bloque captura errores de red, de Axios o cualquier otro fallo inesperado.
+    const errorDetails = error.response?.data || error.message;
+    console.error("❌ Error en la ruta /crearusuario:", errorDetails);
+    
+    return res.status(500).json({
+      error: "Error interno del servidor.",
+      detalles: errorDetails,
+    });
   }
 });
 

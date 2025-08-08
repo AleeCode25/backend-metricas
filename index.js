@@ -98,10 +98,10 @@ app.post("/crearusuario", async (req, res) => {
 
   } catch (error) {
     console.error("❌ Error en la ruta /crearusuario:", error.response?.data || error.message);
-    return res.status(500).json({
-      error: "Error interno del servidor",
-      detalles: error.message
-    });
+    return res.status(500).json({ 
+      error: "Error interno del servidor", 
+      detalles: error.response?.data || error.message 
+  });
   }
 });
 

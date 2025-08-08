@@ -50,18 +50,18 @@ app.post("/crearusuario", async (req, res) => {
   try {
     const { kommoId, token } = req.query;
 
-    const dataToSend = {
-      group: "5",
-      sended: "true",
-      name: "",
-      login: "",
-      password: "",
-      balance: "",
-      api_token: "c9a837bc0cfe1113a8867b7d105ab0087b59b785c0a2d28ac2717ce520931ce2"
-    };
+    const formData = new FormData();
+
+    formData.append("group", "5");
+    formData.append("sended", "true");
+    formData.append("name", "");
+    formData.append("login", "");
+    formData.append("password", "");
+    formData.append("balance", "");
+    formData.append("api_token", "c9a837bc0cfe1113a8867b7d105ab0087b59b785c0a2d28ac2717ce520931ce2");
 
     const apiResponse = await axios.post(
-      "https://admin.reysanto.com/index.php?act=admin&area=createuser&response=js", dataToSend);
+      "https://admin.reysanto.com/index.php?act=admin&area=createuser&response=js", formData);
 
     console.log("Respuesta de la API:", apiResponse);
 

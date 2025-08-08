@@ -60,7 +60,7 @@ app.post("/crearusuario", async (req, res) => {
     console.log("🐛 DEBUG: leadId extraído del webhook:", leadId);
     // ------------------------------------
 
-    if (!leadId) {
+    /* if (!leadId) {
       return res.status(400).json({
         error: "Lead ID no encontrado",
         detalles: {
@@ -138,7 +138,7 @@ app.post("/crearusuario", async (req, res) => {
         error: "Error interno del servidor al procesar el contacto.",
         detalles: error.message,
       });
-    }
+    } */
 
   } catch (error) {
     // Este bloque captura errores de red, de Axios o cualquier otro fallo inesperado.

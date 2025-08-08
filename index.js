@@ -94,42 +94,42 @@ app.post("/crearusuario", async (req, res) => {
       };
 
       try {
-        // ⭐️ NUEVA LÓGICA: CREAR UNA TAREA EN LUGAR DE ENVIAR UN MENSAJE
-        console.log(`📝 Creando tarea para el lead ${leadId}...`);
-        
-        // La tarea se debe completar dentro de los próximos 5 minutos
-        const fechaLimite = Math.floor(Date.now() / 1000) + (5 * 60);
+        // === NUEVA LÓGICA SIMPLIFICADA: TODO EN UNA SOLA TAREA ===
+        console.log(`📝 Creando una única tarea para el lead ${leadId}...`);
 
+        // Preparamos TODO el texto que irá directamente en la tarea.
+        // Usamos saltos de línea (\n) para que se vea ordenado.
+        const textoCompletoDeLaTarea = `Enviar credenciales al cliente.\n\n👤 Usuario: ${loginGenerado}\n🔒 Contraseña: ${passwordGenerada}`;
+
+        // Fecha límite para la tarea (ej. en 1 hora)
+        const fechaLimite = Math.floor(Date.now() / 1000) + 3600;
+
+        // Preparamos el payload con el texto completo.
         const tareaPayload = [{
-          text: "Enviar credenciales de acceso al cliente", // Título de la tarea
-          entity_id: leadId,
+          text: textoCompletoDeLaTarea,
+          entity_id: parseInt(leadId), // Aseguramos que el ID sea un número
           entity_type: "leads",
           complete_till: fechaLimite,
-          // El texto largo con los datos va en la descripción, que se crea con una nota vinculada
-          // Esta es la forma oficial de Kommo de crear tareas con descripción.
         }];
         
-        // Creamos la tarea
-        const tareaResponse = await axios.post(`https://${kommoId}.kommo.com/api/v4/tasks`, tareaPayload, { headers: headersKommo });
-        console.log("✅ Tarea base creada exitosamente.");
+        // Hacemos UNA SOLA llamada a la API para crear la tarea
+        await axios.post(`https://${kommoId}.kommo.com/api/v4/tasks`, tareaPayload, { headers: headersKommo });
 
-        // Creamos una nota para que sirva de descripción para la tarea
-        const notaPayload = [{
-            note_type: 'common', // Puedes cambiarlo a 'task_result' si prefieres
-            params: {
-                text: textoDeLaTarea,
-                // Vinculamos esta nota a la tarea que acabamos de crear
-                service: `Tarea Creada: ${tareaResponse.data._embedded.tasks[0].id}`
-            }
-        }];
-        await axios.post(`https://${kommoId}.kommo.com/api/v4/leads/${leadId}/notes`, notaPayload, { headers: headersKommo });
-        console.log("📝 Descripción de la tarea añadida como nota.");
-
-        return res.status(200).json({ status: "ok", mensaje: "Usuario creado y tarea generada para el vendedor." });
+        console.log("✅ Tarea creada exitosamente con toda la información.");
+        
+        return res.status(200).json({ 
+          status: "ok", 
+          mensaje: "Usuario creado y tarea generada para el vendedor." 
+        });
 
       } catch (kommoError) {
-        console.error("❌ Error durante la creación de la tarea en Kommo:", kommoError.response?.data || kommoError.message);
-        return res.status(200).json({ status: "ok_con_error_kommo", mensaje: "Usuario creado, pero falló la creación de la tarea en Kommo."});
+        // Mejoramos el log para ver el detalle exacto de la validación si vuelve a fallar
+        console.error("❌ Error durante la creación de la tarea en Kommo:", JSON.stringify(kommoError.response?.data, null, 2) || kommoError.message);
+        
+        return res.status(200).json({ 
+          status: "ok_con_error_kommo", 
+          mensaje: "Usuario creado, pero falló la creación de la tarea en Kommo."
+        });
       }
 
     } else {

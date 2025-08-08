@@ -47,142 +47,84 @@ const isValidIP = (ip) => {
 };
 
 app.post("/crearusuario", async (req, res) => {
-  console.log("🐛 DEBUG: Ruta /crearusuario iniciada");
+  // 1. OBTENER DATOS INICIALES
+  const { kommoId, token } = req.query;
+  const leadId = req.body?.leads?.add?.[0]?.id;
+
+  console.log(`➡️  Iniciando /crearusuario para Lead ID: ${leadId}`);
+
+  if (!leadId || !kommoId || !token) {
+    console.error("❌ Faltan datos esenciales: leadId, kommoId o token.");
+    return res.status(400).json({ error: "Faltan parámetros (leadId, kommoId, token)." });
+  }
+  
+  // (Opcional pero recomendado) Guarda el ID de tu campo en una variable.
+  // Reemplazá '123456' con el ID real de tu campo "mensajeenviar".
+  const MENSAJEENVIAR_FIELD_ID = 780468; 
+
   try {
-    console.log("entro en la ruta /crearusuario");
-    const body = req.body;
-    const { kommoId, token } = req.query;
-    // --- LOGS DE DEPURACIÓN INICIANDO LA RUTA ---
-    console.log("🐛 DEBUG: kommoId recibido:", kommoId);
-    console.log("🐛 DEBUG: token recibido:", token);
-    // ------------------------------------------
-    console.log(JSON.stringify(body, null, 2), "← este es lo que devuelve el body");
-    const leadId = req.body?.leads?.add?.[0]?.id;
-    // --- LOG DE DEPURACIÓN PARA leadId ---
-    console.log("🐛 DEBUG: leadId extraído del webhook:", leadId);
-    // ------------------------------------
+    // 2. CREAR USUARIO EN LA PLATAFORMA EXTERNA
+    const formData = new FormData();
+    formData.append("group", "5");
+    formData.append("sended", "true");
+    formData.append("name", "");
+    formData.append("login", "");
+    formData.append("password", "");
+    formData.append("balance", "");
+    formData.append("api_token", "c9a837bc0cfe1113a8867b7d105ab0087b59b785c0a2d28ac2717ce520931ce2");
 
-    if (!leadId) {
+    const apiResponse = await axios.post(
+      "https://admin.reysanto.com/index.php?act=admin&area=createuser&response=js", 
+      formData
+    );
+    const apiData = apiResponse.data;
+
+    // 3. VERIFICAR RESPUESTA Y ACTUALIZAR KOMMO
+    if (apiData.success) {
+      const loginGenerado = apiData.id;
+      const passwordGenerada = apiData.password;
+      console.log(`✅ Usuario creado en sistema externo. Login: ${loginGenerado}`);
+
+      // Creamos el mensaje que se va a enviar
+      const mensajeDeRespuesta = `Hola, tu usuario es: ${loginGenerado} y tu contraseña es: ${passwordGenerada}.`;
+
+      // Preparamos los datos para Kommo USANDO EL FIELD_ID
+      const dataToUpdate = {
+        custom_fields_values: [
+          {
+            field_id: MENSAJEENVIAR_FIELD_ID, // <-- ¡ESTA ES LA CORRECCIÓN CLAVE!
+            values: [{ value: mensajeDeRespuesta }]
+          }
+        ]
+      };
+
+      console.log(`🔄  Actualizando lead ${leadId} con el nuevo mensaje...`);
+      await axios.patch(`https://${kommoId}.kommo.com/api/v4/leads/${leadId}`, dataToUpdate, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      console.log("✅ Lead actualizado exitosamente en Kommo.");
+      return res.status(200).json({ status: "ok", mensaje: "Usuario creado y lead actualizado." });
+
+    } else {
+      // Si la creación del usuario falla
+      const errorMessage = apiData.errorMessage || "La API externa no devolvió un error específico.";
+      console.error("❌ Error de la API externa:", errorMessage);
       return res.status(400).json({
-        error: "Lead ID no encontrado",
-        detalles: {
-          tipo: 'lead_no_encontrado',
-          mensaje: "No se encontró el ID del lead en la solicitud",
-          timestamp: new Date()
-        }
+        error: "Fallo en la creación del usuario.",
+        detalles: errorMessage
       });
     }
-
-    try {
-      const contacto = await obtenerContactoDesdeLead(leadId, kommoId, token);
-
-      if (contacto) {
-        console.log("🧾 ID del contacto:", contacto.id);
-        // Obtener el lead con sus campos personalizados
-        const leadResponse = await axios.get(`https://${kommoId}.kommo.com/api/v4/leads/${leadId}?with=custom_fields_values`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        const lead = leadResponse.data;
-        const campoMensaje = lead.custom_fields_values?.find(field =>
-          field.field_name === "mensajeenviar"
-        );
-        const mensajeDelCliente = campoMensaje?.values?.[0]?.value;
-        console.log("📝 Mensaje guardado en el lead (mensajeenviar):", mensajeDelCliente);
-
-        const formData = new FormData();
-
-        formData.append("group", "5");
-        formData.append("sended", "true");
-        formData.append("name", "");
-        formData.append("login", "");
-        formData.append("password", "");
-        formData.append("balance", "");
-        formData.append("api_token", "c9a837bc0cfe1113a8867b7d105ab0087b59b785c0a2d28ac2717ce520931ce2");
-
-        const apiResponse = await axios.post(
-          "https://admin.reysanto.com/index.php?act=admin&area=createuser&response=js", formData);
-
-        const apiData = apiResponse.data;
-
-        if (apiData.success) {
-          console.log(`✅ Usuario creado exitosamente. Login: ${apiData.id}, Password: ${apiData.password}`);
-
-          let mensajeDeRespuesta = `Hola, tu usuario es: ${apiData.id} y tu contraseña es: ${apiData.password}.`;
-          console.log("➡️ Mensaje de respuesta generado:", mensajeDeRespuesta);
-
-          // Ahora, actualizamos el lead con el nuevo mensaje en el campo "mensajeenviar"
-          const dataToUpdate = {
-            custom_fields_values: [
-              {
-                field_name: "mensajeenviar",
-                values: [
-                  {
-                    value: mensajeDeRespuesta
-                  }
-                ]
-              }
-            ]
-          };
-
-          console.log("ahora va a entrar en el try para actualizar el lead");
-
-          try {
-
-            console.log ( "entro en el try para actualizar el lead" );
-            const leadNuevo = await axios.patch(`https://${kommoId}.kommo.com/api/v4/leads/${leadId}`, dataToUpdate, {
-              headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-              }
-            });
-
-            console.log("llamada cruda: ", leadNuevo);
-
-            console.log("✅ Lead actualizado exitosamente con el nuevo mensaje.");
-
-            return res.status(200).json({ status: "ok", mensaje: "Lead actualizado con la respuesta automática." });
-
-          } catch (error) {
-            // Si ocurre un error al actualizar el lead, lo registramos y respondemos con un error 500.
-            console.error("❌ Error al actualizar el lead con el nuevo mensaje:", error.response?.data || error.message);
-            return res.status(500).json({
-              error: "Error al actualizar el lead con el nuevo mensaje.",
-              detalles: error.message,
-            });
-          }
-
-        } else {
-          // Si la API no devuelve `success: true`, lo manejamos como un error.
-          const errorMessage = apiResponse.errorMessage || "La API no indicó un error específico.";
-          console.error("❌ La API devolvió un error:", errorMessage);
-
-          return res.status(400).json({
-            error: "Fallo en la creación del usuario en la plataforma externa.",
-            detalles: errorMessage,
-          });
-        }
-      } else {
-        // Si no se encuentra el contacto, devuelve un 200 para que Kommo no reintente
-        return res.status(200).json({ status: "ok", mensaje: "Contacto no encontrado, no se realiza ninguna acción." });
-      }
-    } catch (error) {
-      console.error("❌ Error al obtener contacto desde lead:", error.response?.data || error.message);
-      return res.status(500).json({
-        error: "Error interno del servidor al procesar el contacto.",
-        detalles: error.message,
-      });
-    }
-
   } catch (error) {
-    // Este bloque captura errores de red, de Axios o cualquier otro fallo inesperado.
+    // Si falla cualquier llamada de red (axios) o hay otro error
     const errorDetails = error.response?.data || error.message;
-    console.error("❌ Error en la ruta /crearusuario:", errorDetails);
-
+    console.error("❌ Error fatal en la ruta /crearusuario:", errorDetails);
     return res.status(500).json({
       error: "Error interno del servidor.",
-      detalles: errorDetails,
+      detalles: errorDetails
     });
   }
 });

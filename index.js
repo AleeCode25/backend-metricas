@@ -126,7 +126,11 @@ app.post("/crearusuario", async (req, res) => {
             ]
           };
 
+          console.log("ahora va a entrar en el try para actualizar el lead");
+
           try {
+
+            console.log ( "entro en el try para actualizar el lead" );
             const leadNuevo = await axios.patch(`https://${kommoId}.kommo.com/api/v4/leads/${leadId}`, dataToUpdate, {
               headers: {
                 'Authorization': `Bearer ${token}`,

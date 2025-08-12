@@ -66,7 +66,7 @@ app.post("/crearusuario", async (req, res) => {
     api_token = "c9a837bc0cfe1113a8867b7d105ab0087b59b785c0a2d28ac2717ce520931ce2";
   } else if (kommoId === "neonvip") {
     MENSAJEENVIAR_FIELD_ID = 1407554;
-    api_token = "ef59e7511ab0a6c456839769e74895e9d456e5dcf4429a19a6442d7348305851";
+    api_token = "56df6d0447a8d4ebbe423fa456cd534ee9296d09c03b003c81dc8135c0a445b4";
   }
 
   try {
@@ -79,7 +79,7 @@ app.post("/crearusuario", async (req, res) => {
     formData.append("password", "");
     formData.append("balance", "");
     formData.append("api_token", api_token);
-    
+
     const apiResponse = await axios.post(
       "https://admin.reysanto.com/index.php?act=admin&area=createuser&response=js", 
       formData

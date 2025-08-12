@@ -58,9 +58,16 @@ app.post("/crearusuario", async (req, res) => {
     return res.status(400).json({ error: "Faltan parámetros (leadId, kommoId, token)." });
   }
   
-  // (Opcional pero recomendado) Guarda el ID de tu campo en una variable.
-  // Reemplazá '123456' con el ID real de tu campo "mensajeenviar".
-  const MENSAJEENVIAR_FIELD_ID = 780468; 
+  let MENSAJEENVIAR_FIELD_ID;
+  let api_token;
+
+  if (kommoId === "opendrust090") {
+    MENSAJEENVIAR_FIELD_ID = 780468;
+    api_token = "c9a837bc0cfe1113a8867b7d105ab0087b59b785c0a2d28ac2717ce520931ce2";
+  } else if (kommoId === "neonvip") {
+    MENSAJEENVIAR_FIELD_ID = 1407554;
+    api_token = "ef59e7511ab0a6c456839769e74895e9d456e5dcf4429a19a6442d7348305851";
+  }
 
   try {
     // 2. CREAR USUARIO EN LA PLATAFORMA EXTERNA
@@ -71,8 +78,8 @@ app.post("/crearusuario", async (req, res) => {
     formData.append("login", "");
     formData.append("password", "");
     formData.append("balance", "");
-    formData.append("api_token", "c9a837bc0cfe1113a8867b7d105ab0087b59b785c0a2d28ac2717ce520931ce2");
-
+    formData.append("api_token", api_token);
+    
     const apiResponse = await axios.post(
       "https://admin.reysanto.com/index.php?act=admin&area=createuser&response=js", 
       formData

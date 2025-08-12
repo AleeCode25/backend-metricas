@@ -66,7 +66,7 @@ app.post("/crearusuario", async (req, res) => {
     api_token = "c9a837bc0cfe1113a8867b7d105ab0087b59b785c0a2d28ac2717ce520931ce2";
   } else if (kommoId === "neonvip") {
     MENSAJEENVIAR_FIELD_ID = 1407554;
-    api_token = "56df6d0447a8d4ebbe423fa456cd534ee9296d09c03b003c81dc8135c0a445b4";
+    api_token = "649f298de66e450f91b68832d3701d76a2862c5403d0b71acc072c2b79b87ed9";
   }
 
   try {
@@ -90,7 +90,7 @@ app.post("/crearusuario", async (req, res) => {
     if (apiData.success) {
       const loginGenerado = apiData.id;
       const passwordGenerada = apiData.password;
-      console.log(`✅ Usuario creado en sistema externo. Login: ${loginGenerado}`);
+      console.log(`✅ Usuario creado en sistema externo . Login: ${loginGenerado}`);
 
       // Creamos el mensaje que se va a enviar
       const mensajeDeRespuesta = `Hola, tu usuario es: ${loginGenerado} y tu contraseña es: ${passwordGenerada}.`;

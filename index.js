@@ -159,7 +159,7 @@ app.post("/guardar", async (req, res) => {
     }
 
     let existente;
-    // 3. Evitar duplicados si el ID ya existe
+    
     if (kommoId === "opendrust090") {
       existente = await RegistroAlan.findOne({ id });
     } else if (kommoId === "urbanjadeok") {

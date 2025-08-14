@@ -6,6 +6,7 @@ const RegistroRochy = require("./models/RegistroRochy");
 const RegistroNeon = require("./models/RegistroNeon");
 const RegistroDobleAs = require("./models/RegistroDobleAs");
 const RegistroJoker = require("./models/RegistroJoker");
+const RegistroCash = require("./models/RegistroCash");
 const axios = require('axios');
 const cookieParser = require("cookie-parser");
 
@@ -169,6 +170,8 @@ app.post("/guardar", async (req, res) => {
       existente = await RegistroDobleAs.findOne({ id });
     } else if (kommoId === "conline") {
       existente = await RegistroJoker.findOne({ id });
+    } else if (kommoId === "cashlangos") {
+      existente = await RegistroCash.findOne({ id });
     } else {
       return res.status(400).json({ error: "ID de Kommo no reconocido" });
     }
@@ -233,6 +236,16 @@ app.post("/guardar", async (req, res) => {
         mensaje,
       });
 
+      await nuevoRegistro.save();
+    } else if (kommoId === "cashlangos") {
+      nuevoRegistro = new RegistroCash({
+        id,
+        token,
+        pixel,
+        ip,
+        fbclid,
+        mensaje,
+      });
       await nuevoRegistro.save();
     } else {
       return res.status(400).json({ error: "ID de Kommo no reconocido" });
@@ -320,6 +333,8 @@ app.post("/verificacion", async (req, res) => {
         Modelo = RegistroDobleAs;
       } else if (kommoId === "conline") {
         Modelo = RegistroJoker;
+      } else if (kommoId === "cashlangos") {
+        Modelo = RegistroCash;
       } else {
         return res.status(400).json({
           error: "ID de Kommo no reconocido",

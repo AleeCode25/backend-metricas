@@ -264,7 +264,7 @@ app.post("/guardar", async (req, res) => {
 
 app.post("/verificacion", async (req, res) => {
   const body = req.body;
-  const { kommoId, token } = req.query;
+  const { kommoId, token , kommoIddoble } = req.query;
 
   // --- LOGS DE DEPURACIÓN INICIANDO LA RUTA ---
   console.log("🐛 DEBUG: kommoId recibido:", kommoId);
@@ -323,7 +323,9 @@ app.post("/verificacion", async (req, res) => {
     if (idExtraido) {
       let Modelo;
 
-      if (kommoId === "opendrust090") {
+      if(kommoId === "opendrust090" && kommoIddoble === "kommo202513"){
+        Modelo = RegistroDobleAs;
+      } else if (kommoId === "opendrust090") {
         Modelo = RegistroAlan;
       } else if (kommoId === "urbanjadeok") {
         Modelo = RegistroRochy;

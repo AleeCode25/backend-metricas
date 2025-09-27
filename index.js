@@ -330,7 +330,7 @@ app.post("/verificacion", async (req, res) => {
     const idExtraido = mensaje?.match(/\d{13,}/)?.[0];
     console.log("🧾 ID extraído del mensaje:", idExtraido); //cambios
 
-    if (idExtraido) {
+    if (idExtraido || kommoId === "cashlangos") {
       let Modelo;
 
       if(kommoId === "opendrust090" && kommoIddoble === "kommo202513"){

@@ -305,20 +305,10 @@ app.post("/verificacion", async (req, res) => {
     console.log("🐛 DEBUG: Objeto lead COMPLETO devuelto por Kommo API:", JSON.stringify(lead, null, 2));
     // ----------------------------------------------------
 
-    let campoMensaje;
-    let mensaje;
-
-    if(kommoId === "opendrust090" || kommoIddoble === "kommo202513" || kommoId === "neonvip" || kommoId === "conline" || kommoId === "urbanjadeok"){
-    campoMensaje = lead.custom_fields_values?.find(field =>
+    let campoMensaje = lead.custom_fields_values?.find(field =>
       field.field_name === "mensajeenviar"
     );
-    mensaje = campoMensaje?.values?.[0]?.value;
-    } else if(kommoId === "cashlangos"){
-      campoMensaje = lead.custom_fields_values?.find(field =>
-        field.field_name === "fbclid"
-      );
-      mensaje = campoMensaje?.values?.[0]?.value;
-    }
+    let mensaje = campoMensaje?.values?.[0]?.value;
 
     // --- LOGS DE DEPURACIÓN PARA campoMensaje y mensaje ---
     console.log("🐛 DEBUG: Valor de 'campoMensaje' encontrado:", JSON.stringify(campoMensaje, null, 2));
@@ -330,7 +320,7 @@ app.post("/verificacion", async (req, res) => {
     const idExtraido = mensaje?.match(/\d{13,}/)?.[0];
     console.log("🧾 ID extraído del mensaje:", idExtraido); //cambios
 
-    if (idExtraido || kommoId === "cashlangos") {
+    if (idExtraido) {
       let Modelo;
 
       if(kommoId === "opendrust090" && kommoIddoble === "kommo202513"){
@@ -359,12 +349,7 @@ app.post("/verificacion", async (req, res) => {
       }
 
       try {
-        let registro;
-        if (kommoId === "cashlangos") {
-          registro = await Modelo.findOne({ fbclid: mensaje });
-        } else if (kommoId === "opendrust090" || kommoIddoble === "kommo202513" || kommoId === "neonvip" || kommoId === "conline" || kommoId === "urbanjadeok") {
-          registro = await Modelo.findOne({ id: idExtraido });
-        }
+        let registro = await Modelo.findOne({ id: idExtraido });
 
         if (registro) {
           console.log("✅ Registro encontrado:", registro);

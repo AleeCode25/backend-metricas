@@ -500,6 +500,7 @@ app.post("/vip", async (req, res) => {
   const { kommoId, token , kommoIddoble } = req.query;
 
   // --- LOGS DE DEPURACIÓN INICIANDO LA RUTA ---
+  console.log("🐛 DEBUG: ENTRO POR EL VIP");
   console.log("🐛 DEBUG: kommoId recibido:", kommoId);
   console.log("🐛 DEBUG: token recibido:", token);
   // ------------------------------------------
@@ -536,7 +537,7 @@ app.post("/vip", async (req, res) => {
 
     // --- LOG DE DEPURACIÓN PARA el objeto lead completo ---
     console.log("🐛 DEBUG: Objeto lead COMPLETO devuelto por Kommo API:", JSON.stringify(lead, null, 2));
-    console.log("debug lead.price :", lead.price);
+    console.log("🐛 DEBUG: lead.price : ", lead.price);
     // ----------------------------------------------------
   }
 

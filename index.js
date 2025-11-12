@@ -416,7 +416,7 @@ app.post("/verificacion", async (req, res) => {
 
 app.post("/vip", async (req, res) => {
   const body = req.body;
-  const { kommoId, token, kommoIddoble } = req.query;
+  const { kommoId, token } = req.query;
 
   // --- LOGS DE DEPURACIÓN INICIANDO LA RUTA ---
   console.log("🐛 DEBUG: ENTRO POR EL VIP");
@@ -490,7 +490,7 @@ app.post("/vip", async (req, res) => {
         const fbp = cookies._fbp || `fb.1.${Math.floor(Date.now() / 1000)}.${Math.floor(1000000000 + Math.random() * 9000000000)}`;
         const event_id = `lead_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
 
-        if (leadId.price >= 10000) {
+        if (lead.price >= 10000) {
           console.log("El lead es VIP, procediendo con el pixel VIP.");
 
           // URL con el parámetro access_token correctamente
@@ -511,7 +511,7 @@ app.post("/vip", async (req, res) => {
             },
             custom_data: {
               currency: "ARS",
-              value: leadId.price
+              value: lead.price
             },
             event_id: `vip_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`
           };

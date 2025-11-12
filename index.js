@@ -444,159 +444,169 @@ app.post("/vip", async (req, res) => {
 
   const contacto = await obtenerContactoDesdeLead(leadId, kommoId, token);
 
+  // ***************************************************************
+  // AHORA TODA LA LÓGICA PRINCIPAL VA DENTRO DE ESTE 'if'
+  // ***************************************************************
   if (contacto) {
     console.log("🧾 ID del contacto:", contacto.id);
 
-    const leadResponse = await axios.get(`https://${kommoId}.kommo.com/api/v4/leads/${leadId}?with=custom_fields_values`, { // Añadido ?with=custom_fields_values
+    const leadResponse = await axios.get(`https://${kommoId}.kommo.com/api/v4/leads/${leadId}?with=custom_fields_values`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
     });
+    
+    // 'lead' se define aquí y estará disponible para todo lo que sigue dentro de este bloque
     const lead = leadResponse.data;
 
     // --- LOG DE DEPURACIÓN PARA el objeto lead completo ---
     console.log("🐛 DEBUG: Objeto lead COMPLETO devuelto por Kommo API:", JSON.stringify(lead, null, 2));
     console.log("🐛 DEBUG: lead.price : ", lead.price);
     // ----------------------------------------------------
-  }
 
-  let Modelo;
+    let Modelo;
 
-  if (kommoId === "opendrust090") {
-    Modelo = RegistroAlan;
-  } else {
-    return res.status(400).json({
-      error: "ID de Kommo no reconocido",
-      detalles: {
-        tipo: 'kommo_id_no_reconocido',
-        mensaje: `El ID de Kommo '${kommoId}' no es reconocido`,
-        timestamp: new Date()
-      }
-    });
-  }
-
-  try {
-    let registro = await Modelo.findOne({ leadId: leadId });
-
-    if (registro) {
-      console.log("✅ Registro encontrado:", registro);
-
-      try {
-
-        const cookies = req.cookies;
-        const fbclid = registro.fbclid;
-
-        const fbc = cookies._fbc || (fbclid ? `fb.1.${Math.floor(Date.now() / 1000)}.${fbclid}` : null);
-        const fbp = cookies._fbp || `fb.1.${Math.floor(Date.now() / 1000)}.${Math.floor(1000000000 + Math.random() * 9000000000)}`;
-        const event_id = `lead_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
-
-        if (lead.price >= 10000) {
-          console.log("El lead es VIP, procediendo con el pixel VIP.");
-
-          // URL con el parámetro access_token correctamente
-          const pixelEndpointUrl = `https://graph.facebook.com/v18.0/${registro.pixel}/events?access_token=${registro.token}`;
-
-          const eventData = {
-            event_name: "ClientesVIP",
-            event_id,
-            event_time: Math.floor(Date.now() / 1000),
-            action_source: "website",
-            event_source_url: `https://777fortunavip.com/`,
-            user_data: {
-              client_ip_address: registro.ip,
-              client_user_agent: "Server-side",
-              fbc: registro.fbclid ? `fb.1.${Math.floor(Date.now() / 1000)}.${registro.fbclid}` : null,
-              fbp: `fb.1.${Math.floor(Date.now() / 1000)}.${Math.floor(1000000000 + Math.random() * 9000000000)}`,
-              em: registro.email ? require("crypto").createHash("sha256").update(registro.email).digest("hex") : undefined,
-            },
-            custom_data: {
-              currency: "ARS",
-              value: lead.price
-            },
-            event_id: `vip_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`
-          };
-
-          console.log("Datos del evento a enviar:", JSON.stringify(eventData, null, 2));
-          console.log("URL del Pixel:", pixelEndpointUrl);
-
-          const pixelResponse = await axios.post(
-            pixelEndpointUrl,
-            {
-              data: [eventData],
-            },
-            {
-              headers: {
-                "Content-Type": "application/json",
-              },
-            }
-          );
-
-          console.log("📡 Pixel VIP ejecutado con éxito:", pixelResponse.data);
-          return res.status(200).json({
-            mensaje: "Verificación completada exitosamente",
-            estado: "verificado"
-          });
-        } else {
-          console.log("El lead no cumple con el valor mínimo para VIP.");
-          return res.status(400).json({
-            error: "El lead no cumple con el valor mínimo para VIP.",
-            detalles: {
-              tipo: 'valor_minimo_no_cumplido',
-              mensaje: `El valor del lead es ${lead.price}, se requiere al menos 10000.`,
-              timestamp: new Date()
-            }
-          });
-        }
-
-      } catch (error) {
-        console.error("❌ Error al ejecutar el pixel:", error.response?.data || error.message);
-
-        // Actualizar el registro con el error
-        registro.verificationError = {
-          tipo: 'pixel_error',
-          mensaje: error.response?.data?.error?.message || error.message,
-          timestamp: new Date()
-        };
-        await registro.save();
-
-        if (error.response) {
-          console.error("Estado del error:", error.response.status);
-          console.error("Encabezados del error:", error.response.headers);
-          console.error("Datos del error:", error.response.data);
-        } else if (error.request) {
-          console.error("No se recibió respuesta del servidor:", error.request);
-        } else {
-          console.error("Error desconocido:", error.message);
-        }
-
-        return res.status(500).json({
-          error: "Error al ejecutar el pixel",
-          detalles: registro.verificationError
-        });
-      }
+    if (kommoId === "opendrust090") {
+      Modelo = RegistroAlan;
     } else {
-      console.log("❌ No se encontró un registro con ese ID");
-      return res.status(404).json({
-        error: "Registro no encontrado",
+      return res.status(400).json({
+        error: "ID de Kommo no reconocido",
         detalles: {
-          tipo: 'registro_no_encontrado',
-          mensaje: `No se encontró un registro con el ID ${leadId}`,
+          tipo: 'kommo_id_no_reconocido',
+          mensaje: `El ID de Kommo '${kommoId}' no es reconocido`,
           timestamp: new Date()
         }
       });
     }
-  } catch (error) {
-    console.error("Error al buscar o actualizar el registro:", error);
-    return res.status(500).json({
-      error: "Error interno",
-      detalles: {
-        tipo: 'error_interno',
-        mensaje: error.message,
-        timestamp: new Date()
-      }
-    });
-  }
 
+    try {
+      let registro = await Modelo.findOne({ leadId: leadId });
+
+      if (registro) {
+        console.log("✅ Registro encontrado:", registro);
+
+        try {
+
+          const cookies = req.cookies;
+          const fbclid = registro.fbclid;
+
+          const fbc = cookies._fbc || (fbclid ? `fb.1.${Math.floor(Date.now() / 1000)}.${fbclid}` : null);
+          const fbp = cookies._fbp || `fb.1.${Math.floor(Date.now() / 1000)}.${Math.floor(1000000000 + Math.random() * 9000000000)}`;
+          const event_id = `lead_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+
+          // ***************************************************************
+          // ESTA LÍNEA AHORA FUNCIONARÁ PORQUE 'lead' ESTÁ EN SCOPE
+          // ***************************************************************
+          if (lead.price >= 10000) {
+            console.log("El lead es VIP, procediendo con el pixel VIP.");
+
+            // URL con el parámetro access_token correctamente
+            const pixelEndpointUrl = `https://graph.facebook.com/v18.0/${registro.pixel}/events?access_token=${registro.token}`;
+
+            const eventData = {
+              event_name: "ClientesVIP",
+              event_id, // Usando el event_id definido arriba
+              event_time: Math.floor(Date.now() / 1000),
+              action_source: "website",
+              event_source_url: `https://777fortunavip.com/`,
+              user_data: {
+                client_ip_address: registro.ip,
+                client_user_agent: "Server-side",
+                fbc: registro.fbclid ? `fb.1.${Math.floor(Date.now() / 1000)}.${registro.fbclid}` : null,
+                fbp: `fb.1.${Math.floor(Date.now() / 1000)}.${Math.floor(1000000000 + Math.random() * 9000000000)}`,
+                em: registro.email ? require("crypto").createHash("sha26").update(registro.email).digest("hex") : undefined,
+              },
+              custom_data: {
+                currency: "ARS",
+                value: lead.price
+              },
+              // event_id: `vip_${Date.now()}_${Math.random().toString(36).substring(2, 10)}` // Ojo: estabas definiendo event_id dos veces. Usamos el de arriba.
+            };
+
+            console.log("Datos del evento a enviar:", JSON.stringify(eventData, null, 2));
+            console.log("URL del Pixel:", pixelEndpointUrl);
+
+            const pixelResponse = await axios.post(
+              pixelEndpointUrl,
+              {
+                data: [eventData],
+              },
+              {
+                headers: {
+                  "Content-Type": "application/json",
+                },
+              }
+            );
+
+            console.log("📡 Pixel VIP ejecutado con éxito:", pixelResponse.data);
+            return res.status(200).json({
+              mensaje: "Verificación completada exitosamente",
+              estado: "verificado"
+            });
+          } else {
+            console.log("El lead no cumple con el valor mínimo para VIP.");
+            return res.status(400).json({
+              error: "El lead no cumple con el valor mínimo para VIP.",
+              detalles: {
+                tipo: 'valor_minimo_no_cumplido',
+                mensaje: `El valor del lead es ${lead.price}, se requiere al menos 10000.`,
+                timestamp: new Date()
+              }
+            });
+          }
+
+        } catch (error) {
+          console.error("❌ Error al ejecutar el pixel:", error.response?.data || error.message);
+
+          // Actualizar el registro con el error
+          registro.verificationError = {
+            tipo: 'pixel_error',
+            mensaje: error.response?.data?.error?.message || error.message,
+            timestamp: new Date()
+          };
+          await registro.save();
+
+          if (error.response) {
+            console.error("Estado del error:", error.response.status);
+            console.error("Encabezados del error:", error.response.headers);
+            console.error("Datos del error:", error.response.data);
+          } else if (error.request) {
+            console.error("No se recibió respuesta del servidor:", error.request);
+          } else {
+            console.error("Error desconocido:", error.message);
+          }
+
+          return res.status(500).json({
+            error: "Error al ejecutar el pixel",
+            detalles: registro.verificationError
+          });
+        }
+      } else {
+        console.log("❌ No se encontró un registro con ese ID");
+        return res.status(404).json({
+          error: "Registro no encontrado",
+          detalles: {
+            tipo: 'registro_no_encontrado',
+            mensaje: `No se encontró un registro con el ID ${leadId}`,
+            timestamp: new Date()
+          }
+        });
+      }
+    } catch (error) {
+      console.error("Error al buscar o actualizar el registro:", error);
+      return res.status(500).json({
+        error: "Error interno",
+        detalles: {
+          tipo: 'error_interno',
+          mensaje: error.message,
+          timestamp: new Date()
+        }
+      });
+    }
+
+  } // --- FIN DEL BLOQUE 'if (contacto)' ---
+
+  // Si el código llega aquí, es porque 'contacto' era falso (null o undefined)
   return res.status(400).json({
     error: "Contacto no encontrado",
     detalles: {

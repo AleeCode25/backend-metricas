@@ -542,7 +542,7 @@ app.post("/vip", async (req, res) => {
             error: "El lead no cumple con el valor mínimo para VIP.",
             detalles: {
               tipo: 'valor_minimo_no_cumplido',
-              mensaje: `El valor del lead es ${leadId.price}, se requiere al menos 10000.`,
+              mensaje: `El valor del lead es ${lead.price}, se requiere al menos 10000.`,
               timestamp: new Date()
             }
           });
@@ -580,7 +580,7 @@ app.post("/vip", async (req, res) => {
         error: "Registro no encontrado",
         detalles: {
           tipo: 'registro_no_encontrado',
-          mensaje: `No se encontró un registro con el ID ${idExtraido}`,
+          mensaje: `No se encontró un registro con el ID ${leadId}`,
           timestamp: new Date()
         }
       });

@@ -47,96 +47,6 @@ const isValidIP = (ip) => {
   return regex.test(ip);
 };
 
-app.post("/crearusuario", async (req, res) => {
-  // 1. OBTENER DATOS INICIALES
-  const { kommoId, token } = req.query;
-  const leadId = req.body?.leads?.add?.[0]?.id;
-
-  console.log(`➡️  Iniciando /crearusuario para Lead ID: ${leadId}`);
-
-  if (!leadId || !kommoId || !token) {
-    console.error("❌ Faltan datos esenciales: leadId, kommoId o token.");
-    return res.status(400).json({ error: "Faltan parámetros (leadId, kommoId, token)." });
-  }
-  
-  let MENSAJEENVIAR_FIELD_ID;
-  let api_token;
-
-  if (kommoId === "opendrust090") {
-    MENSAJEENVIAR_FIELD_ID = 780468;
-    api_token = "c9a837bc0cfe1113a8867b7d105ab0087b59b785c0a2d28ac2717ce520931ce2";
-  } else if (kommoId === "neonvip") {
-    MENSAJEENVIAR_FIELD_ID = 1407554;
-    api_token = "649f298de66e450f91b68832d3701d76a2862c5403d0b71acc072c2b79b87ed9";
-  }
-
-  try {
-    // 2. CREAR USUARIO EN LA PLATAFORMA EXTERNA
-    const formData = new FormData();
-    formData.append("group", "5");
-    formData.append("sended", "true");
-    formData.append("name", "");
-    formData.append("login", "");
-    formData.append("password", "");
-    formData.append("balance", "");
-    formData.append("api_token", api_token);
-
-    const apiResponse = await axios.post(
-      "https://admin.reysanto.com/index.php?act=admin&area=createuser&response=js", 
-      formData
-    );
-    const apiData = apiResponse.data;
-
-    // 3. VERIFICAR RESPUESTA Y ACTUALIZAR KOMMO
-    if (apiData.success) {
-      const loginGenerado = apiData.id;
-      const passwordGenerada = apiData.password;
-      console.log(`✅ Usuario creado en sistema externo . Login: ${loginGenerado}`);
-
-      // Creamos el mensaje que se va a enviar
-      const mensajeDeRespuesta = `Hola, tu usuario es: ${loginGenerado} y tu contraseña es: ${passwordGenerada}.`;
-
-      // Preparamos los datos para Kommo USANDO EL FIELD_ID
-      const dataToUpdate = {
-        custom_fields_values: [
-          {
-            field_id: MENSAJEENVIAR_FIELD_ID, // <-- ¡ESTA ES LA CORRECCIÓN CLAVE!
-            values: [{ value: mensajeDeRespuesta }]
-          }
-        ]
-      };
-
-      console.log(`🔄  Actualizando lead ${leadId} con el nuevo mensaje...`);
-      await axios.patch(`https://${kommoId}.kommo.com/api/v4/leads/${leadId}`, dataToUpdate, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      console.log("✅ Lead actualizado exitosamente en Kommo.");
-      return res.status(200).json({ status: "ok", mensaje: "Usuario creado y lead actualizado." });
-
-    } else {
-      // Si la creación del usuario falla
-      const errorMessage = apiData.errorMessage || "La API externa no devolvió un error específico.";
-      console.error("❌ Error de la API externa:", errorMessage);
-      return res.status(400).json({
-        error: "Fallo en la creación del usuario.",
-        detalles: errorMessage
-      });
-    }
-  } catch (error) {
-    // Si falla cualquier llamada de red (axios) o hay otro error
-    const errorDetails = error.response?.data || error.message;
-    console.error("❌ Error fatal en la ruta /crearusuario:", errorDetails);
-    return res.status(500).json({
-      error: "Error interno del servidor.",
-      detalles: errorDetails
-    });
-  }
-});
-
 app.post("/guardar", async (req, res) => {
   try {
     const { id, token, pixel, ip, fbclid, mensaje } =
@@ -159,7 +69,7 @@ app.post("/guardar", async (req, res) => {
     }
 
     let existente;
-    
+
     if (kommoId === "opendrust090") {
       existente = await RegistroAlan.findOne({ id });
     } else if (kommoId === "urbanjadeok") {
@@ -190,6 +100,7 @@ app.post("/guardar", async (req, res) => {
         ip,
         fbclid,
         mensaje,
+        leadId: "",
       });
 
       await nuevoRegistro.save();
@@ -264,7 +175,7 @@ app.post("/guardar", async (req, res) => {
 
 app.post("/verificacion", async (req, res) => {
   const body = req.body;
-  const { kommoId, token , kommoIddoble } = req.query;
+  const { kommoId, token, kommoIddoble } = req.query;
 
   // --- LOGS DE DEPURACIÓN INICIANDO LA RUTA ---
   console.log("🐛 DEBUG: kommoId recibido:", kommoId);
@@ -323,7 +234,7 @@ app.post("/verificacion", async (req, res) => {
     if (idExtraido) {
       let Modelo;
 
-      if(kommoId === "opendrust090" && kommoIddoble === "kommo202513"){
+      if (kommoId === "opendrust090" && kommoIddoble === "kommo202513") {
         Modelo = RegistroDobleAs;
       } else if (kommoId === "opendrust090") {
         Modelo = RegistroAlan;
@@ -377,6 +288,14 @@ app.post("/verificacion", async (req, res) => {
             const fbc = cookies._fbc || (fbclid ? `fb.1.${Math.floor(Date.now() / 1000)}.${fbclid}` : null);
             const fbp = cookies._fbp || `fb.1.${Math.floor(Date.now() / 1000)}.${Math.floor(1000000000 + Math.random() * 9000000000)}`;
             const event_id = `lead_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+
+            if (kommoId === "opendrust090") {
+              console.log("aca entro uno que se le crea el leadId")
+              registro.leadId = leadId.toString();
+              await registro.save();
+
+              console.log("Registro guardado con nuevo leadId:", registro.leadId);
+            }
 
             // Marcar como verificado
             registro.isVerified = true;
@@ -497,7 +416,7 @@ app.post("/verificacion", async (req, res) => {
 
 app.post("/vip", async (req, res) => {
   const body = req.body;
-  const { kommoId, token , kommoIddoble } = req.query;
+  const { kommoId, token, kommoIddoble } = req.query;
 
   // --- LOGS DE DEPURACIÓN INICIANDO LA RUTA ---
   console.log("🐛 DEBUG: ENTRO POR EL VIP");
@@ -539,6 +458,143 @@ app.post("/vip", async (req, res) => {
     console.log("🐛 DEBUG: Objeto lead COMPLETO devuelto por Kommo API:", JSON.stringify(lead, null, 2));
     console.log("🐛 DEBUG: lead.price : ", lead.price);
     // ----------------------------------------------------
+  }
+
+  let Modelo;
+
+  if (kommoId === "opendrust090") {
+    Modelo = RegistroAlan;
+  } else {
+    return res.status(400).json({
+      error: "ID de Kommo no reconocido",
+      detalles: {
+        tipo: 'kommo_id_no_reconocido',
+        mensaje: `El ID de Kommo '${kommoId}' no es reconocido`,
+        timestamp: new Date()
+      }
+    });
+  }
+
+  try {
+    let registro = await Modelo.findOne({ leadId: leadId });
+
+    if (registro) {
+      console.log("✅ Registro encontrado:", registro);
+
+      try {
+
+        const cookies = req.cookies;
+        const fbclid = registro.fbclid;
+
+        const fbc = cookies._fbc || (fbclid ? `fb.1.${Math.floor(Date.now() / 1000)}.${fbclid}` : null);
+        const fbp = cookies._fbp || `fb.1.${Math.floor(Date.now() / 1000)}.${Math.floor(1000000000 + Math.random() * 9000000000)}`;
+        const event_id = `lead_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+
+        if (leadId.price >= 10000) {
+          console.log("El lead es VIP, procediendo con el pixel VIP.");
+
+          // URL con el parámetro access_token correctamente
+          const pixelEndpointUrl = `https://graph.facebook.com/v18.0/${registro.pixel}/events?access_token=${registro.token}`;
+
+          const eventData = {
+            event_name: "ClientesVIP",
+            event_id,
+            event_time: Math.floor(Date.now() / 1000),
+            action_source: "website",
+            event_source_url: `https://777fortunavip.com/`,
+            user_data: {
+              client_ip_address: registro.ip,
+              client_user_agent: "Server-side",
+              fbc: registro.fbclid ? `fb.1.${Math.floor(Date.now() / 1000)}.${registro.fbclid}` : null,
+              fbp: `fb.1.${Math.floor(Date.now() / 1000)}.${Math.floor(1000000000 + Math.random() * 9000000000)}`,
+              em: registro.email ? require("crypto").createHash("sha256").update(registro.email).digest("hex") : undefined,
+            },
+            custom_data: {
+              currency: "ARS",
+              value: leadId.price
+            },
+            event_id: `vip_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`
+          };
+
+          console.log("Datos del evento a enviar:", JSON.stringify(eventData, null, 2));
+          console.log("URL del Pixel:", pixelEndpointUrl);
+
+          const pixelResponse = await axios.post(
+            pixelEndpointUrl,
+            {
+              data: [eventData],
+            },
+            {
+              headers: {
+                "Content-Type": "application/json",
+              },
+            }
+          );
+
+          console.log("📡 Pixel VIP ejecutado con éxito:", pixelResponse.data);
+          return res.status(200).json({
+            mensaje: "Verificación completada exitosamente",
+            estado: "verificado"
+          });
+        } else {
+          console.log("El lead no cumple con el valor mínimo para VIP.");
+          return res.status(400).json({
+            error: "El lead no cumple con el valor mínimo para VIP.",
+            detalles: {
+              tipo: 'valor_minimo_no_cumplido',
+              mensaje: `El valor del lead es ${leadId.price}, se requiere al menos 10000.`,
+              timestamp: new Date()
+            }
+          });
+        }
+
+      } catch (error) {
+        console.error("❌ Error al ejecutar el pixel:", error.response?.data || error.message);
+
+        // Actualizar el registro con el error
+        registro.verificationError = {
+          tipo: 'pixel_error',
+          mensaje: error.response?.data?.error?.message || error.message,
+          timestamp: new Date()
+        };
+        await registro.save();
+
+        if (error.response) {
+          console.error("Estado del error:", error.response.status);
+          console.error("Encabezados del error:", error.response.headers);
+          console.error("Datos del error:", error.response.data);
+        } else if (error.request) {
+          console.error("No se recibió respuesta del servidor:", error.request);
+        } else {
+          console.error("Error desconocido:", error.message);
+        }
+
+        return res.status(500).json({
+          error: "Error al ejecutar el pixel",
+          detalles: registro.verificationError
+        });
+      }
+    } else {
+      console.log("❌ No se encontró un registro con ese ID");
+      return res.status(404).json({
+        error: "Registro no encontrado",
+        detalles: {
+          tipo: 'registro_no_encontrado',
+          mensaje: `No se encontró un registro con el ID ${idExtraido}`,
+          timestamp: new Date()
+        }
+      });
+    }
+  } catch (error) {
+    console.error("Error al buscar o actualizar el registro:", error);
+    return res.status(500).json({
+      error: "Error interno",
+      detalles: {
+        tipo: 'error_interno',
+        mensaje: error.message,
+        timestamp: new Date()
+      }
+    });
   }
 
   return res.status(400).json({

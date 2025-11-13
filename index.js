@@ -788,9 +788,8 @@ app.post("/crearusuariorey", async (req, res) => {
         // La respuesta ya debería estar parseada como JSON si la plataforma devuelve un JSON válido
         // Si la plataforma devuelve un objeto de JavaScript (no JSON estricto), podría ser necesario usar response.data.toString()
         console.log(response.data);
-
-        // Si quieres ver el JSON formateado:
-        console.log(JSON.stringify(response.data, null, 2));
+        console.log("usuario creado: " + response.data.login);
+        console.log("contraseña creada: " + response.data.password);
 
       } catch (error) {
         console.error("❌ Error al crear el usuario:");

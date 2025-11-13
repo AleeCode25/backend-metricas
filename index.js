@@ -455,7 +455,7 @@ app.post("/vip", async (req, res) => {
         'Authorization': `Bearer ${token}`
       }
     });
-    
+
     // 'lead' se define aquí y estará disponible para todo lo que sigue dentro de este bloque
     const lead = leadResponse.data;
 
@@ -695,6 +695,117 @@ app.post("/mensaje", async (req, res) => {
           }
         ]
       };
+
+      // Enviamos la solicitud PATCH a la API de Kommo para actualizar el lead
+      await axios.patch(`https://${kommoId}.kommo.com/api/v4/leads/${leadId}`, dataToUpdate, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      console.log("✅ Lead actualizado exitosamente con el nuevo mensaje.");
+
+      return res.status(200).json({ status: "ok", mensaje: "Lead actualizado con la respuesta automática." });
+
+    } else {
+      // Si no se encuentra el contacto, devuelve un 200 para que Kommo no reintente
+      return res.status(200).json({ status: "ok", mensaje: "Contacto no encontrado, no se realiza ninguna acción." });
+    }
+  } catch (error) {
+    console.error("❌ Error en la ruta /mensaje:", error.response?.data || error.message);
+    return res.status(500).json({ error: "Error interno del servidor", detalles: error.message });
+  }
+});
+
+app.post("/crearusuariorey", async (req, res) => {
+  const body = req.body;
+  const { kommoId, token } = req.query;
+  // --- LOGS DE DEPURACIÓN INICIANDO LA RUTA ---
+  console.log("🐛 DEBUG: kommoId recibido:", kommoId);
+  console.log("🐛 DEBUG: token recibido:", token);
+  // ------------------------------------------
+  console.log(JSON.stringify(body, null, 2), "← este es lo que devuelve el body");
+  const leadId = req.body?.leads?.add?.[0]?.id;
+  // --- LOG DE DEPURACIÓN PARA leadId ---
+  console.log("🐛 DEBUG: leadId extraído del webhook:", leadId);
+  // ------------------------------------
+
+  if (!leadId) {
+    return res.status(400).json({
+      error: "Lead ID no encontrado",
+      detalles: {
+        tipo: 'lead_no_encontrado',
+        mensaje: "No se encontró el ID del lead en la solicitud",
+        timestamp: new Date()
+      }
+    });
+  }
+
+  try {
+    const contacto = await obtenerContactoDesdeLead(leadId, kommoId, token);
+
+    if (contacto) {
+      console.log("🧾 ID del contacto:", contacto.id);
+      const leadResponse = await axios.get(`https://${kommoId}.kommo.com/api/v4/leads/${leadId}?with=custom_fields_values`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const lead = leadResponse.data;
+
+      console.log("📝 lead:", lead);
+
+      const url = "https://admin.reysanto.com/index.php?act=admin&area=createuser&response=js";
+
+      console.log("➡️ Enviando solicitud a la plataforma Rey Santo... url:", url);
+
+      // Los datos a enviar en el formato 'application/x-www-form-urlencoded'
+      const formData = new URLSearchParams();
+      formData.append('group', '5');
+      formData.append('sended', 'true');
+      formData.append('api_token', 'c9a337ac0afe111a98fb7d105ab0097658c0dc2d2bc27f7c52093fce2');
+      formData.append('login', '');
+      formData.append('password', '');
+      formData.append('name', '');
+      formData.append('balance', '');
+
+      try {
+        const response = await axios.post(
+          url,
+          formData, // Axios maneja automáticamente el formato x-www-form-urlencoded con URLSearchParams
+          {
+            headers: {
+              // Es buena práctica definir explícitamente el Content-Type para form-data
+              'Content-Type': 'application/x-www-form-urlencoded'
+            }
+          }
+        );
+
+        console.log("✅ Solicitud exitosa. Usuario creado (o intento de creación).");
+        console.log("Respuesta de la plataforma Rey Santo:");
+
+        // La respuesta ya debería estar parseada como JSON si la plataforma devuelve un JSON válido
+        // Si la plataforma devuelve un objeto de JavaScript (no JSON estricto), podría ser necesario usar response.data.toString()
+        console.log(response.data);
+
+        // Si quieres ver el JSON formateado:
+        console.log(JSON.stringify(response.data, null, 2));
+
+      } catch (error) {
+        console.error("❌ Error al crear el usuario:");
+        if (error.response) {
+          // El servidor respondió con un código de estado fuera del rango 2xx
+          console.error(`Código de estado: ${error.response.status}`);
+          console.error("Cuerpo de la respuesta de error:", error.response.data);
+        } else if (error.request) {
+          // La solicitud fue hecha pero no se recibió respuesta
+          console.error("No se recibió respuesta del servidor.");
+        } else {
+          // Algo más causó el error
+          console.error("Error de configuración de la solicitud:", error.message);
+        }
+      }
 
       // Enviamos la solicitud PATCH a la API de Kommo para actualizar el lead
       await axios.patch(`https://${kommoId}.kommo.com/api/v4/leads/${leadId}`, dataToUpdate, {

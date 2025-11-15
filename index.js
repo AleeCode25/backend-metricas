@@ -718,95 +718,67 @@ app.post("/mensaje", async (req, res) => {
   }
 });
 
-app.post("/crearusuariorey", async (req, res) => {
-  const body = req.body;
+app.post("/crearusuario", async (req, res) => {
+  // 1. OBTENER DATOS INICIALES
   const { kommoId, token } = req.query;
-  // --- LOGS DE DEPURACIÓN INICIANDO LA RUTA ---
-  console.log("🐛 DEBUG: kommoId recibido:", kommoId);
-  console.log("🐛 DEBUG: token recibido:", token);
-  // ------------------------------------------
-  console.log(JSON.stringify(body, null, 2), "← este es lo que devuelve el body");
   const leadId = req.body?.leads?.add?.[0]?.id;
-  // --- LOG DE DEPURACIÓN PARA leadId ---
-  console.log("🐛 DEBUG: leadId extraído del webhook:", leadId);
-  // ------------------------------------
 
-  if (!leadId) {
-    return res.status(400).json({
-      error: "Lead ID no encontrado",
-      detalles: {
-        tipo: 'lead_no_encontrado',
-        mensaje: "No se encontró el ID del lead en la solicitud",
-        timestamp: new Date()
-      }
-    });
+  console.log(`➡️  Iniciando /crearusuario para Lead ID: ${leadId}`);
+
+  if (!leadId || !kommoId || !token) {
+    console.error("❌ Faltan datos esenciales: leadId, kommoId o token.");
+    return res.status(400).json({ error: "Faltan parámetros (leadId, kommoId, token)." });
+  }
+  
+  let MENSAJEENVIAR_FIELD_ID;
+  let api_token;
+
+  if (kommoId === "lafortuna") {
+    MENSAJEENVIAR_FIELD_ID = 780468;
+    api_token = "c9a837bc0cfe1113a8867b7d105ab0087b59b785c0a2d28ac2717ce520931ce2";
+  } else if (kommoId === "neonvip") {
+    MENSAJEENVIAR_FIELD_ID = 1407554;
+    api_token = "649f298de66e450f91b68832d3701d76a2862c5403d0b71acc072c2b79b87ed9";
   }
 
   try {
-    const contacto = await obtenerContactoDesdeLead(leadId, kommoId, token);
+    // 2. CREAR USUARIO EN LA PLATAFORMA EXTERNA
+    const formData = new FormData();
+    formData.append("group", "5");
+    formData.append("sended", "true");
+    formData.append("name", "");
+    formData.append("login", "");
+    formData.append("password", "");
+    formData.append("balance", "");
+    formData.append("api_token", api_token);
 
-    if (contacto) {
-      console.log("🧾 ID del contacto:", contacto.id);
-      const leadResponse = await axios.get(`https://${kommoId}.kommo.com/api/v4/leads/${leadId}?with=custom_fields_values`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      const lead = leadResponse.data;
+    const apiResponse = await axios.post(
+      "https://admin.reysanto.com/index.php?act=admin&area=createuser&response=js", 
+      formData
+    );
+    const apiData = apiResponse.data;
 
-      console.log("📝 lead:", lead);
+    // 3. VERIFICAR RESPUESTA Y ACTUALIZAR KOMMO
+    if (apiData.success) {
+      const loginGenerado = apiData.id;
+      const passwordGenerada = apiData.password;
+      console.log(`✅ Usuario creado en sistema externo . Login: ${loginGenerado}`);
 
-      const url = "https://admin.reysanto.com/index.php?act=admin&area=createuser&response=js";
+      // Creamos el mensaje que se va a enviar
+      const mensajeDeRespuesta = `Hola, tu usuario es: ${loginGenerado} y tu contraseña es: ${passwordGenerada}.`;
 
-      console.log("➡️ Enviando solicitud a la plataforma Rey Santo... url:", url);
-
-      // Los datos a enviar en el formato 'application/x-www-form-urlencoded'
-      const formData = new URLSearchParams();
-      formData.append('group', '5');
-      formData.append('sended', 'true');
-      formData.append('api_token', 'c9a837bc0cfe1113a8867b7d105ab0087b59b785c0a2d28ac2717ce520931ce2');
-      formData.append('login', '');
-      formData.append('password', '');
-      formData.append('name', '');
-      formData.append('balance', '');
-
-      try {
-        const response = await axios.post(
-          url,
-          formData, // Axios maneja automáticamente el formato x-www-form-urlencoded con URLSearchParams
+      // Preparamos los datos para Kommo USANDO EL FIELD_ID
+      const dataToUpdate = {
+        name: $loginGenerado,
+        custom_fields_values: [
           {
-            headers: {
-              // Es buena práctica definir explícitamente el Content-Type para form-data
-              'Content-Type': 'application/x-www-form-urlencoded'
-            }
+            field_id: MENSAJEENVIAR_FIELD_ID, // <-- ¡ESTA ES LA CORRECCIÓN CLAVE!
+            values: [{ value: mensajeDeRespuesta }]
           }
-        );
+        ]
+      };
 
-        console.log("✅ Solicitud exitosa. Usuario creado (o intento de creación).");
-        console.log("Respuesta de la plataforma Rey Santo:");
-
-        // La respuesta ya debería estar parseada como JSON si la plataforma devuelve un JSON válido
-        // Si la plataforma devuelve un objeto de JavaScript (no JSON estricto), podría ser necesario usar response.data.toString()
-        console.log(response.data);
-        console.log("usuario creado: " + response.data.login);
-        console.log("contraseña creada: " + response.data.password);
-
-      } catch (error) {
-        console.error("❌ Error al crear el usuario:");
-        if (error.response) {
-          // El servidor respondió con un código de estado fuera del rango 2xx
-          console.error(`Código de estado: ${error.response.status}`);
-          console.error("Cuerpo de la respuesta de error:", error.response.data);
-        } else if (error.request) {
-          // La solicitud fue hecha pero no se recibió respuesta
-          console.error("No se recibió respuesta del servidor.");
-        } else {
-          // Algo más causó el error
-          console.error("Error de configuración de la solicitud:", error.message);
-        }
-      }
-
-      // Enviamos la solicitud PATCH a la API de Kommo para actualizar el lead
+      console.log(`🔄  Actualizando lead ${leadId} con el nuevo mensaje...`);
       await axios.patch(`https://${kommoId}.kommo.com/api/v4/leads/${leadId}`, dataToUpdate, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -814,17 +786,26 @@ app.post("/crearusuariorey", async (req, res) => {
         }
       });
 
-      console.log("✅ Lead actualizado exitosamente con el nuevo mensaje.");
-
-      return res.status(200).json({ status: "ok", mensaje: "Lead actualizado con la respuesta automática." });
+      console.log("✅ Lead actualizado exitosamente en Kommo.");
+      return res.status(200).json({ status: "ok", mensaje: "Usuario creado y lead actualizado." });
 
     } else {
-      // Si no se encuentra el contacto, devuelve un 200 para que Kommo no reintente
-      return res.status(200).json({ status: "ok", mensaje: "Contacto no encontrado, no se realiza ninguna acción." });
+      // Si la creación del usuario falla
+      const errorMessage = apiData.errorMessage || "La API externa no devolvió un error específico.";
+      console.error("❌ Error de la API externa:", errorMessage);
+      return res.status(400).json({
+        error: "Fallo en la creación del usuario.",
+        detalles: errorMessage
+      });
     }
   } catch (error) {
-    console.error("❌ Error en la ruta /mensaje:", error.response?.data || error.message);
-    return res.status(500).json({ error: "Error interno del servidor", detalles: error.message });
+    // Si falla cualquier llamada de red (axios) o hay otro error
+    const errorDetails = error.response?.data || error.message;
+    console.error("❌ Error fatal en la ruta /crearusuario:", errorDetails);
+    return res.status(500).json({
+      error: "Error interno del servidor.",
+      detalles: errorDetails
+    });
   }
 });
 

@@ -884,7 +884,6 @@ app.post("/mensajecarga", async (req, res) => {
 
     // Preparamos los datos para Kommo USANDO EL FIELD_ID
     const dataToUpdate = {
-      name: $loginGenerado,
       custom_fields_values: [
         {
           field_id: MENSAJEENVIAR_FIELD_ID, // <-- ¡ESTA ES LA CORRECCIÓN CLAVE!

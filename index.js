@@ -809,7 +809,7 @@ app.post("/crearusuario", async (req, res) => {
   }
 });
 
-app.post("/crearusuario", async (req, res) => {
+app.post("/mensajecarga", async (req, res) => {
   // 1. OBTENER DATOS INICIALES
   const { kommoId, token } = req.query;
   const leadId = req.body?.leads?.add?.[0]?.id;

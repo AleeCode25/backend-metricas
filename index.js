@@ -769,7 +769,7 @@ app.post("/crearusuario", async (req, res) => {
 
       // Preparamos los datos para Kommo USANDO EL FIELD_ID
       const dataToUpdate = {
-        name: $loginGenerado,
+        name: loginGenerado,
         custom_fields_values: [
           {
             field_id: MENSAJEENVIAR_FIELD_ID, // <-- ¡ESTA ES LA CORRECCIÓN CLAVE!
@@ -893,6 +893,8 @@ app.post("/mensajecarga", async (req, res) => {
     };
 
     console.log(`🔄  Actualizando lead ${leadId} con el nuevo mensaje...`);
+    console.log("Mensaje seleccionado:", mensajeDeRespuesta);
+    console.log("token y kommoId usados:", token, kommoId);
     await axios.patch(`https://${kommoId}.kommo.com/api/v4/leads/${leadId}`, dataToUpdate, {
       headers: {
         'Authorization': `Bearer ${token}`,

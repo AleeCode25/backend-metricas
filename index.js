@@ -906,9 +906,25 @@ app.post("/mensajecarga", async (req, res) => {
     console.log("✅ Lead actualizado exitosamente en Kommo.");
     return res.status(200).json({ status: "ok", mensaje: "Usuario creado y lead actualizado." });
   } catch (error) {
-    // Si falla cualquier llamada de red (axios) o hay otro error
-    const errorDetails = error.response?.data || error.message;
+    // Acceder a los detalles del error de la respuesta HTTP
+    const errorResponseData = error.response?.data;
+    const errorDetails = errorResponseData || error.message;
+
     console.error("❌ Error fatal en la ruta /mensajecarga:", errorDetails);
+
+    // ------------------------------------------------------------------
+    // 💡 NUEVO CÓDIGO CLAVE: INTENTAR IMPRIMIR EL ARRAY DE VALIDACIÓN
+    // ------------------------------------------------------------------
+    if (errorResponseData && errorResponseData['validation-errors']) {
+      console.error("🛑 DETALLES DE VALIDACIÓN DE KOMMO:");
+
+      // Intentamos imprimir el primer error que Kommo te está devolviendo
+      errorResponseData['validation-errors'].forEach((validationError, index) => {
+        console.error(`Error de Validación #${index}:`, validationError.errors);
+      });
+    }
+    // ------------------------------------------------------------------
+
     return res.status(500).json({
       error: "Error interno del servidor.",
       detalles: errorDetails

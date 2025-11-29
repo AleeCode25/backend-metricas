@@ -729,7 +729,7 @@ app.post("/crearusuario", async (req, res) => {
     console.error("❌ Faltan datos esenciales: leadId, kommoId o token.");
     return res.status(400).json({ error: "Faltan parámetros (leadId, kommoId, token)." });
   }
-  
+
   let MENSAJEENVIAR_FIELD_ID;
   let api_token;
 
@@ -753,7 +753,7 @@ app.post("/crearusuario", async (req, res) => {
     formData.append("api_token", api_token);
 
     const apiResponse = await axios.post(
-      "https://admin.reysanto.com/index.php?act=admin&area=createuser&response=js", 
+      "https://admin.reysanto.com/index.php?act=admin&area=createuser&response=js",
       formData
     );
     const apiData = apiResponse.data;
@@ -808,6 +808,117 @@ app.post("/crearusuario", async (req, res) => {
     });
   }
 });
+
+app.post("/crearusuario", async (req, res) => {
+  // 1. OBTENER DATOS INICIALES
+  const { kommoId, token } = req.query;
+  const leadId = req.body?.leads?.add?.[0]?.id;
+
+  console.log(`➡️  Iniciando /mensajecarga para Lead ID: ${leadId}`);
+
+  if (!leadId || !kommoId || !token) {
+    console.error("❌ Faltan datos esenciales: leadId, kommoId o token.");
+    return res.status(400).json({ error: "Faltan parámetros (leadId, kommoId, token)." });
+  }
+
+  let MENSAJEENVIAR_FIELD_ID;
+  let api_token;
+
+  if (kommoId === "lafortuna") {
+    MENSAJEENVIAR_FIELD_ID = 780468;
+    api_token = "c9a837bc0cfe1113a8867b7d105ab0087b59b785c0a2d28ac2717ce520931ce2";
+  } else if (kommoId === "neonvip") {
+    MENSAJEENVIAR_FIELD_ID = 1407554;
+    api_token = "649f298de66e450f91b68832d3701d76a2862c5403d0b71acc072c2b79b87ed9";
+  }
+
+  try {
+
+    const mensajesDeAcreditacionYPromocion = [
+      "Todo en orden, ya podés arrancar, que tengas un gran día ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/LxQFXRUwYllEFLQh9nzG75",
+      "Todo preparado, podés iniciar cuando quieras, te deseo lo mejor ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/LxQFXRUwYllEFLQh9nzG75",
+      "Todo listo, empezá con confianza, mucha energía positiva ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/LxQFXRUwYllEFLQh9nzG75",
+      "Todo ok, podés arrancar ahora, que te vaya excelente ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/LxQFXRUwYllEFLQh9nzG75",
+      "Todo en marcha, podés comenzar tranquilo, éxitos hoy ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/LxQFXRUwYllEFLQh9nzG75",
+      "Todo preparado, podés dar inicio, que tengas una gran jornada ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/LxQFXRUwYllEFLQh9nzG75",
+      "Todo listo, podés empezar ya, lo mejor para vos hoy ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/LxQFXRUwYllEFLQh9nzG75",
+      "Todo acomodado, arrancá con calma, te deseo lo mejor ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/LxQFXRUwYllEFLQh9nzG75",
+      "Todo listo, podés comenzar con confianza, que sea productivo ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/LxQFXRUwYllEFLQh9nzG75",
+      "Ya está todo preparado, podés arrancar tranquilo, éxitos hoy ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/LxQFXRUwYllEFLQh9nzG75",
+      "Todo en orden, podés empezar ya, que tengas un día genial ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/LxQFXRUwYllEFLQh9nzG75",
+      "Todo listo, podés iniciar cuando quieras, que tengas un gran día ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/LxQFXRUwYllEFLQh9nzG75",
+      "Todo preparado, comenzá con confianza, te deseo lo mejor ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/LxQFXRUwYllEFLQh9nzG75",
+      "Todo listo, podés arrancar seguro, que te vaya excelente ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/LxQFXRUwYllEFLQh9nzG75",
+      "Todo en marcha, ya podés empezar, que sea un día positivo ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/LxQFXRUwYllEFLQh9nzG75",
+      "Todo acomodado, podés iniciar ya, fuerza para hoy ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/LxQFXRUwYllEFLQh9nzG75",
+      "Todo perfecto, podés arrancar tranquilo, que tengas un día productivo ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/LxQFXRUwYllEFLQh9nzG75",
+      "Todo listo, podés dar inicio ya, éxitos en la jornada ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/LxQFXRUwYllEFLQh9nzG75",
+      "Todo organizado, podés comenzar con calma, que sea un gran día ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/LxQFXRUwYllEFLQh9nzG75",
+      "Todo preparado, ya podés arrancar, mucha fuerza hoy ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/LxQFXRUwYllEFLQh9nzG75",
+      "Todo en orden, podés iniciar cuando quieras, éxitos ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/LxQFXRUwYllEFLQh9nzG75",
+      "Todo listo, arrancá tranquilo, que tengas un día excelente ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/LxQFXRUwYllEFLQh9nzG75",
+      "Todo preparado, podés empezar ya, lo mejor en tu jornada ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/LxQFXRUwYllEFLQh9nzG75",
+      "Todo acomodado, podés arrancar seguro, éxitos en la carga ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/LxQFXRUwYllEFLQh9nzG75",
+      "Todo listo, podés iniciar ya, que te vaya genial hoy ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/LxQFXRUwYllEFLQh9nzG75",
+      "Todo en orden, podés comenzar tranquilo, mucha fuerza ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/LxQFXRUwYllEFLQh9nzG75",
+      "Todo preparado, arrancá ya, que tengas un gran día ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/LxQFXRUwYllEFLQh9nzG75",
+      "Todo perfecto, podés empezar con confianza, éxitos ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/LxQFXRUwYllEFLQh9nzG75",
+      "Todo listo, podés iniciar tranquilo, que sea un gran día ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/LxQFXRUwYllEFLQh9nzG75",
+      "Todo preparado, podés comenzar ya, mucha energía ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/LxQFXRUwYllEFLQh9nzG75",
+      "Todo en orden, podés arrancar tranquilo, que sea un día excelente ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/LxQFXRUwYllEFLQh9nzG75",
+      "Todo listo, podés iniciar ya, mucha fuerza ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/LxQFXRUwYllEFLQh9nzG75",
+      "Todo acomodado, podés arrancar cuando quieras, éxitos ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/LxQFXRUwYllEFLQh9nzG75",
+      "Todo preparado, podés comenzar con confianza, que sea positivo ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/LxQFXRUwYllEFLQh9nzG75",
+      "Todo perfecto, podés iniciar tranquilo, éxitos hoy ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/LxQFXRUwYllEFLQh9nzG75",
+      "Todo listo, podés arrancar ya, que sea una buena jornada ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/LxQFXRUwYllEFLQh9nzG75",
+      "Todo en marcha, podés comenzar cuando quieras, te deseo lo mejor ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/LxQFXRUwYllEFLQh9nzG75",
+      "Todo preparado, podés dar inicio ya, mucha fuerza ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/LxQFXRUwYllEFLQh9nzG75",
+      "Todo listo, podés empezar tranquilo, éxitos hoy ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/LxQFXRUwYllEFLQh9nzG75",
+      "Todo acomodado, podés arrancar con calma, que sea productivo ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/LxQFXRUwYllEFLQh9nzG75",
+      "Todo en orden, podés iniciar ya, lo mejor para vos hoy ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/LxQFXRUwYllEFLQh9nzG75",
+      "Todo listo, podés arrancar seguro, que sea una gran jornada ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/LxQFXRUwYllEFLQh9nzG75",
+      "Todo preparado, podés comenzar tranquilo, éxitos hoy ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/LxQFXRUwYllEFLQh9nzG75"
+    ];
+
+    const indiceAleatorio = Math.floor(Math.random() * mensajesDeCargadoListo.length);
+    const mensajeDeRespuesta = obtenerMensajeAlAzar(mensajesDeAcreditacionYPromocion);
+
+    // Preparamos los datos para Kommo USANDO EL FIELD_ID
+    const dataToUpdate = {
+      name: $loginGenerado,
+      custom_fields_values: [
+        {
+          field_id: MENSAJEENVIAR_FIELD_ID, // <-- ¡ESTA ES LA CORRECCIÓN CLAVE!
+          values: [{ value: mensajeDeRespuesta }]
+        }
+      ]
+    };
+
+    console.log(`🔄  Actualizando lead ${leadId} con el nuevo mensaje...`);
+    await axios.patch(`https://${kommoId}.kommo.com/api/v4/leads/${leadId}`, dataToUpdate, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    console.log("✅ Lead actualizado exitosamente en Kommo.");
+    return res.status(200).json({ status: "ok", mensaje: "Usuario creado y lead actualizado." });
+  } catch (error) {
+    // Si falla cualquier llamada de red (axios) o hay otro error
+    const errorDetails = error.response?.data || error.message;
+    console.error("❌ Error fatal en la ruta /mensajecarga:", errorDetails);
+    return res.status(500).json({
+      error: "Error interno del servidor.",
+      detalles: errorDetails
+    });
+  }
+});
+
+function obtenerMensajeAlAzar(arrayDeMensajes) {
+  const indiceAleatorio = Math.floor(Math.random() * arrayDeMensajes.length);
+  return arrayDeMensajes[indiceAleatorio];
+}
 
 async function obtenerContactoDesdeLead(leadId, kommoId, token) {
   // Aseguramos que se solicite custom_fields_values para el contacto si es necesario

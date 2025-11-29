@@ -825,7 +825,7 @@ app.post("/mensajecarga", async (req, res) => {
   let api_token;
 
   if (kommoId === "lafortuna") {
-    MENSAJEENVIAR_FIELD_ID = 780468;
+    MENSAJEENVIAR_FIELD_ID = 1902536;
     api_token = "c9a837bc0cfe1113a8867b7d105ab0087b59b785c0a2d28ac2717ce520931ce2";
   } else if (kommoId === "neonvip") {
     MENSAJEENVIAR_FIELD_ID = 1407554;

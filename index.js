@@ -883,38 +883,20 @@ app.post("/mensajecarga", async (req, res) => {
     const mensajeDeRespuesta = obtenerMensajeAlAzar(mensajesDeAcreditacionYPromocion);
 
     // Preparamos los datos para Kommo USANDO EL FIELD_ID
-    /* const dataToUpdate = {
+    const dataToUpdate = {
       custom_fields_values: [
         {
           field_id: MENSAJEENVIAR_FIELD_ID, // <-- ¡ESTA ES LA CORRECCIÓN CLAVE!
           values: [{ value: mensajeDeRespuesta }]
         }
       ]
-    }; */
-
-    const dataToUpdate = [ // ¡DEBE SER UN ARRAY!
-      {
-        id: parseInt(leadId), // 1. OBLIGATORIO: Incluir el ID del lead
-        custom_fields_values: [
-          {
-            field_id: MENSAJEENVIAR_FIELD_ID,
-            values: [{ value: mensajeDeRespuesta }]
-          }
-        ]
-      }
-    ];
+    };
 
     console.log(`🔄  Actualizando lead ${leadId} con el nuevo mensaje...`);
     console.log("Mensaje seleccionado:", mensajeDeRespuesta);
     console.log("token y kommoId usados:", token, kommoId);
-    /* await axios.patch(`https://${kommoId}.kommo.com/api/v4/leads/${leadId}`, dataToUpdate, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    }); */
-
-    await axios.patch(`https://${kommoId}.kommo.com/api/v4/leads`, dataToUpdate, {
+    console.log("dataToUpdate:", JSON.stringify(dataToUpdate, null, 2));
+    await axios.patch(`https://${kommoId}.kommo.com/api/v4/leads/${leadId}`, dataToUpdate, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'

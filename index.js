@@ -880,7 +880,6 @@ app.post("/mensajecarga", async (req, res) => {
       "Todo preparado, podés comenzar tranquilo, éxitos hoy ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/LxQFXRUwYllEFLQh9nzG75"
     ];
 
-    const indiceAleatorio = Math.floor(Math.random() * mensajesDeCargadoListo.length);
     const mensajeDeRespuesta = obtenerMensajeAlAzar(mensajesDeAcreditacionYPromocion);
 
     // Preparamos los datos para Kommo USANDO EL FIELD_ID

@@ -498,13 +498,17 @@ app.post("/vip", async (req, res) => {
           // ESTA LÍNEA AHORA FUNCIONARÁ PORQUE 'lead' ESTÁ EN SCOPE
           // ***************************************************************
           if (lead.price >= 10000) {
-            console.log("El lead es VIP, procediendo con el pixel VIP.");
+            if (lead.price >= 20000) {
+              console.log("El lead califica como Ultra VIP, procediendo con el pixel Ultra Vip.");
+            } else {
+              console.log("El lead es VIP, procediendo con el pixel VIP.");
+            }
 
             // URL con el parámetro access_token correctamente
             const pixelEndpointUrl = `https://graph.facebook.com/v18.0/${registro.pixel}/events?access_token=${registro.token}`;
 
             const eventData = {
-              event_name: "ClientesVIP",
+              event_name: lead.price >= 20000 ? "ClientesUltraVIP" : "ClientesVIP",
               event_id, // Usando el event_id definido arriba
               event_time: Math.floor(Date.now() / 1000),
               action_source: "website",

@@ -965,6 +965,30 @@ app.post("/cargar", async (req, res) => {
     api_token = "649f298de66e450f91b68832d3701d76a2862c5403d0b71acc072c2b79b87ed9";
   }
 
+  try {
+    const contacto = await obtenerContactoDesdeLead(leadId, kommoId, token);
+
+    if (contacto) {
+      console.log("🧾 ID del contacto:", contacto.id);
+
+      // Obtener el lead con sus campos personalizados
+      const leadResponse = await axios.get(`https://${kommoId}.kommo.com/api/v4/leads/${leadId}?with=custom_fields_values`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const lead = leadResponse.data;
+      
+      console.log("contacto obtenido:", contacto);
+      console.log("Propiedades del lead obtenido:", lead);
+
+      }
+   } catch (error) {
+    console.error("❌ Error en la ruta /cargar:", error.response?.data || error.message);
+    return res.status(500).json({ error: "Error interno del servidor", detalles: error.message });
+  }
+
+
   /* try {
 
     const mensajesDeAcreditacionYPromocion = [

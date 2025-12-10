@@ -959,7 +959,6 @@ app.post("/cargar", async (req, res) => {
 
   if (kommoId === "lafortuna") {
     MENSAJEENVIAR_FIELD_ID = 1902536;
-    api_token = "c9a837bc0cfe1113a8867b7d105ab0087b59b785c0a2d28ac2717ce520931ce2";
   } else if (kommoId === "neonvip") {
     MENSAJEENVIAR_FIELD_ID = 1407554;
     api_token = "649f298de66e450f91b68832d3701d76a2862c5403d0b71acc072c2b79b87ed9";
@@ -986,12 +985,72 @@ app.post("/cargar", async (req, res) => {
       
       const customFieldPlataforma = lead.custom_fields_values?.find(field => field.field_name === 'PLATAFORMA');
 
+      const nombreDelLead = lead.name;
       const montoACargar = customFieldMonto?.values?.[0]?.value;
       const plataformaSeleccionada = customFieldPlataforma?.values?.[0]?.value.toLowerCase()
-
+      
+      console.log("👤 Nombre del usuario extraido:", nombreDelLead);
       console.log("💰 Monto a cargar extraído:", montoACargar);
       console.log("🎰 Plataforma seleccionada extraída:", plataformaSeleccionada);
 
+      if (!montoACargar || isNaN(montoACargar) || montoACargar <= 0) {
+        console.error("❌ Monto a cargar inválido:", montoACargar);
+        return res.status(400).json({ error: "Monto a cargar inválido." });
+      }
+
+      if (!plataformaSeleccionada || (plataformaSeleccionada !== 'rey santo' && plataformaSeleccionada !== 'fortuna')) {
+        console.error("❌ Plataforma seleccionada inválida:", plataformaSeleccionada);
+        return res.status(400).json({ error: "Plataforma seleccionada inválida." });
+      }
+
+      if(plataformaSeleccionada === 'fortuna'){
+        api_token = "c9a837bc0cfe1113a8867b7d105ab0087b59b785c0a2d28ac2717ce520931ce2";
+      } else if (plataformaSeleccionada === 'rey santo'){
+        api_token = "ec6ab03d2199969f8e3b7a2319a68ce743a30f06eb20422922d454839b619e2b";
+      }
+
+      try {
+        // 2. REALIZAR LA CARGA EN LA PLATAFORMA EXTERNA
+        const formData = new FormData();
+        formData.append("amount", montoACargar);
+        formData.append("balance_currency", "ARS");
+        formData.append("send", "true");
+        formData.append("operation", "in");
+        formData.append("api_token", api_token);
+
+        const cargaResponse = await axios.post(
+          `https://admin.reysanto.com/index.php?act=admin&area=balance&type=frame&id=${nombreDelLead}&response=js`,
+          formData
+        );
+
+        const cargaData = cargaResponse.data;
+        
+        console.log("respuesta completa " + cargaResponse);
+
+        console.log("✅ Carga realizada exitosamente en plataforma externa:", cargaData);
+
+        console.log(`✅ Carga de ${montoACargar} realizada exitosamente en ${plataformaSeleccionada} para el usuario ${nombreDelLead}.`);
+      
+
+        /* if (cargaData.success) {
+          console.log(`✅ Carga de ${montoACargar} realizada exitosamente en ${plataformaSeleccionada} para el usuario ${nombreDelLead}.`);
+          return res.status(200).json({ status: "ok", mensaje: "Carga realizada exitosamente." });
+        } else {
+          const errorMessage = cargaData.errorMessage || "La API externa no devolvió un error específico.";
+          console.error("❌ Error de la API externa durante la carga:", errorMessage);
+          return res.status(400).json({
+            error: "Fallo en la carga del usuario.",
+            detalles: errorMessage
+          });
+        } */
+      } catch (error) {
+        const errorDetails = error.response?.data || error.message;
+        console.error("❌ Error al realizar la carga en la plataforma externa:", errorDetails);
+        return res.status(500).json({
+          error: "Error interno del servidor durante la carga.",
+          detalles: errorDetails
+        });
+      }
       
     }
    } catch (error) {

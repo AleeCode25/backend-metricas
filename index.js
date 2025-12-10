@@ -1015,6 +1015,7 @@ app.post("/cargar", async (req, res) => {
         formData.append("amount", montoACargar);
         formData.append("balance_currency", "ARS");
         formData.append("send", "true");
+        formData.append("all", "false");
         formData.append("operation", "in");
         formData.append("api_token", api_token);
 

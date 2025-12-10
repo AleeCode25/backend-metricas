@@ -982,7 +982,18 @@ app.post("/cargar", async (req, res) => {
       console.log("contacto obtenido:", contacto);
       console.log("Propiedades del lead obtenido:", lead);
 
-      }
+      const customFieldMonto = lead.custom_fields_values?.find(field => field.field_name === 'MONTO A CARGAR');
+      
+      const customFieldPlataforma = lead.custom_fields_values?.find(field => field.field_name === 'PLATAFORMA');
+
+      const montoACargar = customFieldMonto?.values?.[0]?.value;
+      const plataformaSeleccionada = customFieldPlataforma?.values?.[0]?.value;
+
+      console.log("💰 Monto a cargar extraído:", montoACargar);
+      console.log("🎰 Plataforma seleccionada extraída:", plataformaSeleccionada);
+
+      
+    }
    } catch (error) {
     console.error("❌ Error en la ruta /cargar:", error.response?.data || error.message);
     return res.status(500).json({ error: "Error interno del servidor", detalles: error.message });

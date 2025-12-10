@@ -987,7 +987,7 @@ app.post("/cargar", async (req, res) => {
       const customFieldPlataforma = lead.custom_fields_values?.find(field => field.field_name === 'PLATAFORMA');
 
       const montoACargar = customFieldMonto?.values?.[0]?.value;
-      const plataformaSeleccionada = customFieldPlataforma?.values?.[0]?.value;
+      const plataformaSeleccionada = customFieldPlataforma?.values?.[0]?.value.toLowerCase()
 
       console.log("💰 Monto a cargar extraído:", montoACargar);
       console.log("🎰 Plataforma seleccionada extraída:", plataformaSeleccionada);

@@ -1440,7 +1440,11 @@ app.post("/saldo", async (req, res) => {
       try {
         // 2. REALIZAR LA CARGA EN LA PLATAFORMA EXTERNA
 
-        const cargaResponse = await axios.post(`https://admin.reysanto.com/index.php?act=admin&area=users&search=${nombreDelLead}&response=js`);
+              // 2. REALIZAR LA CARGA EN LA PLATAFORMA EXTERNA
+      const formData = new FormData();
+      formData.append("api_token", api_token);
+
+        const cargaResponse = await axios.post(`https://admin.reysanto.com/index.php?act=admin&area=users&search=${nombreDelLead}&response=js`, formData);
 
         const cargaData = cargaResponse.data;
 

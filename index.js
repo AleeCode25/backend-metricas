@@ -1089,7 +1089,8 @@ app.post("/cargar", async (req, res) => {
                   field_id: MENSAJEENVIAR_FIELD_ID, // <-- ¡ESTA ES LA CORRECCIÓN CLAVE!
                   values: [{ value: mensajeDeRespuesta }]
                 }
-              ]
+              ],
+              customFieldMonto
             };
 
             console.log(`🔄  Actualizando lead ${leadId} con el nuevo mensaje...`);
@@ -1130,6 +1131,378 @@ app.post("/cargar", async (req, res) => {
               detalles: errorDetails
             });
           }
+
+
+        } else {
+          const errorMessage = cargaData.errorMessage || "La API externa no devolvió un error específico.";
+          console.error("❌ Error de la API externa durante la carga:", errorMessage);
+          return res.status(400).json({
+            error: "Fallo en la carga del usuario.",
+            detalles: errorMessage
+          });
+        }
+      } catch (error) {
+        const errorDetails = error.response?.data || error.message;
+        console.error("❌ Error al realizar la carga en la plataforma externa:", errorDetails);
+        return res.status(500).json({
+          error: "Error interno del servidor durante la carga.",
+          detalles: errorDetails
+        });
+      }
+
+    }
+  } catch (error) {
+    console.error("❌ Error en la ruta /cargar:", error.response?.data || error.message);
+    return res.status(500).json({ error: "Error interno del servidor", detalles: error.message });
+  }
+});
+
+app.post("/retirar", async (req, res) => {
+  // 1. OBTENER DATOS INICIALES
+  const body = req.body;
+  const { kommoId, token } = req.query;
+  const leadId = req.body?.leads?.add?.[0]?.id;
+
+  console.log(JSON.stringify(body, null, 2), "← este es lo que devuelve el body");
+  console.log(`➡️  Iniciando /retirar para Lead ID: ${leadId}`);
+
+
+  if (!leadId || !kommoId || !token) {
+    console.error("❌ Faltan datos esenciales: leadId, kommoId o token.");
+    return res.status(400).json({ error: "Faltan parámetros (leadId, kommoId, token)." });
+  }
+
+  let MENSAJEENVIAR_FIELD_ID;
+  let api_token;
+
+  if (kommoId === "lafortuna") {
+    MENSAJEENVIAR_FIELD_ID = 1902536;
+  } else if (kommoId === "neonvip") {
+    MENSAJEENVIAR_FIELD_ID = 1407554;
+    api_token = "649f298de66e450f91b68832d3701d76a2862c5403d0b71acc072c2b79b87ed9";
+  }
+
+  try {
+    const contacto = await obtenerContactoDesdeLead(leadId, kommoId, token);
+
+    if (contacto) {
+      console.log("🧾 ID del contacto:", contacto.id);
+
+      // Obtener el lead con sus campos personalizados
+      const leadResponse = await axios.get(`https://${kommoId}.kommo.com/api/v4/leads/${leadId}?with=custom_fields_values`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const lead = leadResponse.data;
+
+      console.log("contacto obtenido:", contacto);
+      console.log("Propiedades del lead obtenido:", lead);
+
+      const customFieldMonto = lead.custom_fields_values?.find(field => field.field_name === 'MONTO A RETIRAR');
+
+      const customFieldPlataforma = lead.custom_fields_values?.find(field => field.field_name === 'PLATAFORMA');
+
+      const nombreDelLead = lead.name;
+      const montoACargar = customFieldMonto?.values?.[0]?.value;
+      const plataformaSeleccionada = customFieldPlataforma?.values?.[0]?.value.toLowerCase()
+
+      console.log("👤 Nombre del usuario extraido:", nombreDelLead);
+      console.log("💰 Monto a retirar extraído:", montoACargar);
+      console.log("🎰 Plataforma seleccionada extraída:", plataformaSeleccionada);
+
+      if (!montoACargar || isNaN(montoACargar) || montoACargar <= 0) {
+        console.error("❌ Monto a retirar inválido:", montoACargar);
+        return res.status(400).json({ error: "Monto a retirar inválido." });
+      }
+
+      if (!plataformaSeleccionada || (plataformaSeleccionada !== 'rey santo' && plataformaSeleccionada !== 'fortuna')) {
+        console.error("❌ Plataforma seleccionada inválida:", plataformaSeleccionada);
+        return res.status(400).json({ error: "Plataforma seleccionada inválida." });
+      }
+
+      if (plataformaSeleccionada === 'fortuna') {
+        api_token = "c9a837bc0cfe1113a8867b7d105ab0087b59b785c0a2d28ac2717ce520931ce2";
+      } else if (plataformaSeleccionada === 'rey santo') {
+        api_token = "ec6ab03d2199969f8e3b7a2319a68ce743a30f06eb20422922d454839b619e2b";
+      }
+
+      try {
+        // 2. REALIZAR LA CARGA EN LA PLATAFORMA EXTERNA
+        const formData = new FormData();
+        formData.append("amount", montoACargar);
+        formData.append("balance_currency", "ARS");
+        formData.append("send", "true");
+        formData.append("all", "false");
+        formData.append("operation", "out");
+        formData.append("api_token", api_token);
+
+        const cargaResponse = await axios.post(
+          `https://admin.reysanto.com/index.php?act=admin&area=balance&type=frame&id=${nombreDelLead}&response=js`,
+          formData
+        );
+
+        const cargaData = cargaResponse.data;
+
+        if (cargaData.successMessage) {
+
+          console.log(`✅ Retiro de ${montoACargar} realizada exitosamente en ${plataformaSeleccionada} para el usuario ${nombreDelLead}.`);
+
+          // Crear el mensaje de confirmación
+
+          try {
+
+            const mensajesDeAcreditacionYPromocion = [
+              "Todo en orden, ya podés arrancar, que tengas un gran día ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/IDf7Hu8XlraDglyOkwia16",
+              "Todo preparado, podés iniciar cuando quieras, te deseo lo mejor ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/IDf7Hu8XlraDglyOkwia16",
+              "Todo listo, empezá con confianza, mucha energía positiva ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/IDf7Hu8XlraDglyOkwia16",
+              "Todo ok, podés arrancar ahora, que te vaya excelente ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/IDf7Hu8XlraDglyOkwia16",
+              "Todo en marcha, podés comenzar tranquilo, éxitos hoy ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/IDf7Hu8XlraDglyOkwia16",
+              "Todo preparado, podés dar inicio, que tengas una gran jornada ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/IDf7Hu8XlraDglyOkwia16",
+              "Todo listo, podés empezar ya, lo mejor para vos hoy ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/IDf7Hu8XlraDglyOkwia16",
+              "Todo acomodado, arrancá con calma, te deseo lo mejor ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/IDf7Hu8XlraDglyOkwia16",
+              "Todo listo, podés comenzar con confianza, que sea productivo ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/IDf7Hu8XlraDglyOkwia16",
+              "Ya está todo preparado, podés arrancar tranquilo, éxitos hoy ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/IDf7Hu8XlraDglyOkwia16",
+              "Todo en orden, podés empezar ya, que tengas un día genial ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/IDf7Hu8XlraDglyOkwia16",
+              "Todo listo, podés iniciar cuando quieras, que tengas un gran día ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/IDf7Hu8XlraDglyOkwia16",
+              "Todo preparado, comenzá con confianza, te deseo lo mejor ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/IDf7Hu8XlraDglyOkwia16",
+              "Todo listo, podés arrancar seguro, que te vaya excelente ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/IDf7Hu8XlraDglyOkwia16",
+              "Todo en marcha, ya podés empezar, que sea un día positivo ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/IDf7Hu8XlraDglyOkwia16",
+              "Todo acomodado, podés iniciar ya, fuerza para hoy ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/IDf7Hu8XlraDglyOkwia16",
+              "Todo perfecto, podés arrancar tranquilo, que tengas un día productivo ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/IDf7Hu8XlraDglyOkwia16",
+              "Todo listo, podés dar inicio ya, éxitos en la jornada ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/IDf7Hu8XlraDglyOkwia16",
+              "Todo organizado, podés comenzar con calma, que sea un gran día ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/IDf7Hu8XlraDglyOkwia16",
+              "Todo preparado, ya podés arrancar, mucha fuerza hoy ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/IDf7Hu8XlraDglyOkwia16",
+              "Todo en orden, podés iniciar cuando quieras, éxitos ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/IDf7Hu8XlraDglyOkwia16",
+              "Todo listo, arrancá tranquilo, que tengas un día excelente ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/IDf7Hu8XlraDglyOkwia16",
+              "Todo preparado, podés empezar ya, lo mejor en tu jornada ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/IDf7Hu8XlraDglyOkwia16",
+              "Todo acomodado, podés arrancar seguro, éxitos en la carga ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/IDf7Hu8XlraDglyOkwia16",
+              "Todo listo, podés iniciar ya, que te vaya genial hoy ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/IDf7Hu8XlraDglyOkwia16",
+              "Todo en orden, podés comenzar tranquilo, mucha fuerza ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/IDf7Hu8XlraDglyOkwia16",
+              "Todo preparado, arrancá ya, que tengas un gran día ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/IDf7Hu8XlraDglyOkwia16",
+              "Todo perfecto, podés empezar con confianza, éxitos ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/IDf7Hu8XlraDglyOkwia16",
+              "Todo listo, podés iniciar tranquilo, que sea un gran día ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/IDf7Hu8XlraDglyOkwia16",
+              "Todo preparado, podés comenzar ya, mucha energía ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/IDf7Hu8XlraDglyOkwia16",
+              "Todo en orden, podés arrancar tranquilo, que sea un día excelente ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/IDf7Hu8XlraDglyOkwia16",
+              "Todo listo, podés iniciar ya, mucha fuerza ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/IDf7Hu8XlraDglyOkwia16",
+              "Todo acomodado, podés arrancar cuando quieras, éxitos ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/IDf7Hu8XlraDglyOkwia16",
+              "Todo preparado, podés comenzar con confianza, que sea positivo ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/IDf7Hu8XlraDglyOkwia16",
+              "Todo perfecto, podés iniciar tranquilo, éxitos hoy ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/IDf7Hu8XlraDglyOkwia16",
+              "Todo listo, podés arrancar ya, que sea una buena jornada ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/IDf7Hu8XlraDglyOkwia16",
+              "Todo en marcha, podés comenzar cuando quieras, te deseo lo mejor ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/IDf7Hu8XlraDglyOkwia16",
+              "Todo preparado, podés dar inicio ya, mucha fuerza ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/IDf7Hu8XlraDglyOkwia16",
+              "Todo listo, podés empezar tranquilo, éxitos hoy ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/IDf7Hu8XlraDglyOkwia16",
+              "Todo acomodado, podés arrancar con calma, que sea productivo ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/IDf7Hu8XlraDglyOkwia16",
+              "Todo en orden, podés iniciar ya, lo mejor para vos hoy ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/IDf7Hu8XlraDglyOkwia16",
+              "Todo listo, podés arrancar seguro, que sea una gran jornada ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/IDf7Hu8XlraDglyOkwia16",
+              "Todo preparado, podés comenzar tranquilo, éxitos hoy ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://chat.whatsapp.com/IDf7Hu8XlraDglyOkwia16"
+            ];
+
+            const mensajeDeRespuesta = obtenerMensajeAlAzar(mensajesDeAcreditacionYPromocion);
+
+            // Preparamos los datos para Kommo USANDO EL FIELD_ID
+            const dataToUpdate = {
+              custom_fields_values: [
+                {
+                  field_id: MENSAJEENVIAR_FIELD_ID, // <-- ¡ESTA ES LA CORRECCIÓN CLAVE!
+                  values: [{ value: mensajeDeRespuesta }]
+                }
+              ],
+              customFieldMonto
+            };
+
+            console.log(`🔄  Actualizando lead ${leadId} con el nuevo mensaje...`);
+            console.log("Mensaje seleccionado:", mensajeDeRespuesta);
+            console.log("token y kommoId usados:", token, kommoId);
+            console.log("dataToUpdate:", JSON.stringify(dataToUpdate, null, 2));
+            await axios.patch(`https://${kommoId}.kommo.com/api/v4/leads/${leadId}`, dataToUpdate, {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              }
+            });
+
+            console.log("✅ Lead actualizado exitosamente en Kommo.");
+            return res.status(200).json({ status: "ok", mensaje: "Usuario creado y lead actualizado." });
+          } catch (error) {
+            // Acceder a los detalles del error de la respuesta HTTP
+            const errorResponseData = error.response?.data;
+            const errorDetails = errorResponseData || error.message;
+
+            console.error("❌ Error fatal en la ruta /retirar:", errorDetails);
+
+            // ------------------------------------------------------------------
+            // 💡 NUEVO CÓDIGO CLAVE: INTENTAR IMPRIMIR EL ARRAY DE VALIDACIÓN
+            // ------------------------------------------------------------------
+            if (errorResponseData && errorResponseData['validation-errors']) {
+              console.error("🛑 DETALLES DE VALIDACIÓN DE KOMMO:");
+
+              // Intentamos imprimir el primer error que Kommo te está devolviendo
+              errorResponseData['validation-errors'].forEach((validationError, index) => {
+                console.error(`Error de Validación #${index}:`, validationError.errors);
+              });
+            }
+            // ------------------------------------------------------------------
+
+            return res.status(500).json({
+              error: "Error interno del servidor.",
+              detalles: errorDetails
+            });
+          }
+
+
+        } else {
+          const errorMessage = cargaData.errorMessage || "La API externa no devolvió un error específico.";
+          console.error("❌ Error de la API externa durante retiro:", errorMessage);
+          return res.status(400).json({
+            error: "Fallo en la carga del usuario.",
+            detalles: errorMessage
+          });
+        }
+      } catch (error) {
+        const errorDetails = error.response?.data || error.message;
+        console.error("❌ Error al realizar la carga en la plataforma externa:", errorDetails);
+        return res.status(500).json({
+          error: "Error interno del servidor durante el retiro.",
+          detalles: errorDetails
+        });
+      }
+
+    }
+  } catch (error) {
+    console.error("❌ Error en la ruta /retirar:", error.response?.data || error.message);
+    return res.status(500).json({ error: "Error interno del servidor", detalles: error.message });
+  }
+});
+
+app.post("/saldo", async (req, res) => {
+  // 1. OBTENER DATOS INICIALES
+  const body = req.body;
+  const { kommoId, token } = req.query;
+  const leadId = req.body?.leads?.add?.[0]?.id;
+
+  console.log(JSON.stringify(body, null, 2), "← este es lo que devuelve el body");
+  console.log(`➡️  Iniciando /saldo para Lead ID: ${leadId}`);
+
+
+  if (!leadId || !kommoId || !token) {
+    console.error("❌ Faltan datos esenciales: leadId, kommoId o token.");
+    return res.status(400).json({ error: "Faltan parámetros (leadId, kommoId, token)." });
+  }
+
+  let MENSAJEENVIAR_FIELD_ID;
+  let api_token;
+
+  if (kommoId === "lafortuna") {
+    MENSAJEENVIAR_FIELD_ID = 1902536;
+  } else if (kommoId === "neonvip") {
+    MENSAJEENVIAR_FIELD_ID = 1407554;
+    api_token = "649f298de66e450f91b68832d3701d76a2862c5403d0b71acc072c2b79b87ed9";
+  }
+
+  try {
+    const contacto = await obtenerContactoDesdeLead(leadId, kommoId, token);
+
+    if (contacto) {
+      console.log("🧾 ID del contacto:", contacto.id);
+
+      // Obtener el lead con sus campos personalizados
+      const leadResponse = await axios.get(`https://${kommoId}.kommo.com/api/v4/leads/${leadId}?with=custom_fields_values`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const lead = leadResponse.data;
+
+      console.log("contacto obtenido:", contacto);
+      console.log("Propiedades del lead obtenido:", lead);
+
+
+      const customFieldPlataforma = lead.custom_fields_values?.find(field => field.field_name === 'PLATAFORMA');
+
+      const nombreDelLead = lead.name;
+      const plataformaSeleccionada = customFieldPlataforma?.values?.[0]?.value.toLowerCase()
+
+      console.log("👤 Nombre del usuario extraido:", nombreDelLead);
+      console.log("🎰 Plataforma seleccionada extraída:", plataformaSeleccionada);
+
+      if (!plataformaSeleccionada || (plataformaSeleccionada !== 'rey santo' && plataformaSeleccionada !== 'fortuna')) {
+        console.error("❌ Plataforma seleccionada inválida:", plataformaSeleccionada);
+        return res.status(400).json({ error: "Plataforma seleccionada inválida." });
+      }
+
+      if (plataformaSeleccionada === 'fortuna') {
+        api_token = "c9a837bc0cfe1113a8867b7d105ab0087b59b785c0a2d28ac2717ce520931ce2";
+      } else if (plataformaSeleccionada === 'rey santo') {
+        api_token = "ec6ab03d2199969f8e3b7a2319a68ce743a30f06eb20422922d454839b619e2b";
+      }
+
+      try {
+        // 2. REALIZAR LA CARGA EN LA PLATAFORMA EXTERNA
+
+        const cargaResponse = await axios.post(`https://admin.reysanto.com/index.php?act=admin&area=users&search=${nombreDelLead}&response=js`);
+
+        const cargaData = cargaResponse.data;
+
+        if (cargaData.successMessage) {
+
+          console.log(`✅ Consulta de saldo realizada exitosamente en ${plataformaSeleccionada} para el usuario ${nombreDelLead}.`);
+          console.log("datos devueltos:", cargaData);
+
+          // Crear el mensaje de confirmación
+
+          /* try {
+
+            const mensajeDeRespuesta = `Hola ${nombreDelLead}, tu saldo actual en ${plataformaSeleccionada.toUpperCase()} es de ARS ${cargaData.current_balance}. ¡Gracias por confiar en nosotros!`;
+
+            // Preparamos los datos para Kommo USANDO EL FIELD_ID
+            const dataToUpdate = {
+              custom_fields_values: [
+                {
+                  field_id: MENSAJEENVIAR_FIELD_ID, // <-- ¡ESTA ES LA CORRECCIÓN CLAVE!
+                  values: [{ value: mensajeDeRespuesta }]
+                }
+              ],
+            };
+
+            console.log(`🔄  Actualizando lead ${leadId} con el nuevo mensaje...`);
+            console.log("Mensaje seleccionado:", mensajeDeRespuesta);
+            console.log("token y kommoId usados:", token, kommoId);
+            console.log("dataToUpdate:", JSON.stringify(dataToUpdate, null, 2));
+            await axios.patch(`https://${kommoId}.kommo.com/api/v4/leads/${leadId}`, dataToUpdate, {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              }
+            });
+
+            console.log("✅ Lead actualizado exitosamente en Kommo.");
+            return res.status(200).json({ status: "ok", mensaje: "Usuario creado y lead actualizado." });
+          } catch (error) {
+            // Acceder a los detalles del error de la respuesta HTTP
+            const errorResponseData = error.response?.data;
+            const errorDetails = errorResponseData || error.message;
+
+            console.error("❌ Error fatal en la ruta /saldo:", errorDetails);
+
+            // ------------------------------------------------------------------
+            // 💡 NUEVO CÓDIGO CLAVE: INTENTAR IMPRIMIR EL ARRAY DE VALIDACIÓN
+            // ------------------------------------------------------------------
+            if (errorResponseData && errorResponseData['validation-errors']) {
+              console.error("🛑 DETALLES DE VALIDACIÓN DE KOMMO:");
+
+              // Intentamos imprimir el primer error que Kommo te está devolviendo
+              errorResponseData['validation-errors'].forEach((validationError, index) => {
+                console.error(`Error de Validación #${index}:`, validationError.errors);
+              });
+            }
+            // ------------------------------------------------------------------
+
+            return res.status(500).json({
+              error: "Error interno del servidor.",
+              detalles: errorDetails
+            });
+          } */
 
 
         } else {

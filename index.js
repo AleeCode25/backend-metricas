@@ -1465,7 +1465,7 @@ app.post("/saldo", async (req, res) => {
               throw new Error(`No se encontró información del usuario ${nombreDelLead} en la respuesta de la API.`);
             }
 
-            const mensajeDeRespuesta = `Tu saldo retirable es de  $${cargaData.out_balance.ars} & de Bono no retirable $${cargaData.wager.ars}.`;
+            const mensajeDeRespuesta = `Tu saldo retirable es de  $${usuarioInfo.out_balance.ARS} & de Bono no retirable $${usuarioInfo.wager.ARS}.`;
 
             // Preparamos los datos para Kommo USANDO EL FIELD_ID
             const dataToUpdate = {

@@ -1450,16 +1450,21 @@ app.post("/saldo", async (req, res) => {
 
         console.log("datos devueltos:", cargaData);
 
-        if (cargaData.successMessage) {
+        if (cargaData.users.length > 0) {
 
           console.log(`✅ Consulta de saldo realizada exitosamente en ${plataformaSeleccionada} para el usuario ${nombreDelLead}.`);
           
 
           // Crear el mensaje de confirmación
 
-          /* try {
+          try {
 
-            const mensajeDeRespuesta = `Hola ${nombreDelLead}, tu saldo actual en ${plataformaSeleccionada.toUpperCase()} es de ARS ${cargaData.current_balance}. ¡Gracias por confiar en nosotros!`;
+            const usuarioInfo = cargaData.users.find(user => user.id === nombreDelLead);
+            if (!usuarioInfo) {
+              throw new Error(`No se encontró información del usuario ${nombreDelLead} en la respuesta de la API.`);
+            }
+
+            const mensajeDeRespuesta = `Tu saldo retirable es de  $${cargaData.out_balance.ars} & de Bono no retirable $${cargaData.wager.ars}.`;
 
             // Preparamos los datos para Kommo USANDO EL FIELD_ID
             const dataToUpdate = {
@@ -1508,7 +1513,7 @@ app.post("/saldo", async (req, res) => {
               error: "Error interno del servidor.",
               detalles: errorDetails
             });
-          } */
+          }
 
 
         } else {

@@ -1444,10 +1444,12 @@ app.post("/saldo", async (req, res) => {
 
         const cargaData = cargaResponse.data;
 
+        console.log("datos devueltos:", cargaData);
+
         if (cargaData.successMessage) {
 
           console.log(`✅ Consulta de saldo realizada exitosamente en ${plataformaSeleccionada} para el usuario ${nombreDelLead}.`);
-          console.log("datos devueltos:", cargaData);
+          
 
           // Crear el mensaje de confirmación
 

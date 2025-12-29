@@ -55,7 +55,10 @@ const registroSchema = new mongoose.Schema({
         tipo: String,
         mensaje: String,
         timestamp: Date
-    }
+    },
+    leadId: {
+        type: String,
+    },
 });
 
 module.exports = mongoose.model('RegistroCash', registroSchema);

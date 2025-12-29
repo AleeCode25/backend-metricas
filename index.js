@@ -80,7 +80,7 @@ app.post("/guardar", async (req, res) => {
       existente = await RegistroDobleAs.findOne({ id });
     } else if (kommoId === "conline") {
       existente = await RegistroJoker.findOne({ id });
-    } else if (kommoId === "cashlangos") {
+    } else if (kommoId === "woncoinbots2") {
       existente = await RegistroCash.findOne({ id });
     } else {
       return res.status(400).json({ error: "ID de Kommo no reconocido" });
@@ -148,7 +148,7 @@ app.post("/guardar", async (req, res) => {
       });
 
       await nuevoRegistro.save();
-    } else if (kommoId === "cashlangos") {
+    } else if (kommoId === "woncoinbots2") {
       nuevoRegistro = new RegistroCash({
         id,
         token,
@@ -156,6 +156,7 @@ app.post("/guardar", async (req, res) => {
         ip,
         fbclid,
         mensaje,
+        leadId: "",
       });
       await nuevoRegistro.save();
     } else {
@@ -246,7 +247,7 @@ app.post("/verificacion", async (req, res) => {
         Modelo = RegistroDobleAs;
       } else if (kommoId === "conline") {
         Modelo = RegistroJoker;
-      } else if (kommoId === "cashlangos") {
+      } else if (kommoId === "woncoinbots2") {
         Modelo = RegistroCash;
       } else {
         return res.status(400).json({
@@ -289,7 +290,7 @@ app.post("/verificacion", async (req, res) => {
             const fbp = cookies._fbp || `fb.1.${Math.floor(Date.now() / 1000)}.${Math.floor(1000000000 + Math.random() * 9000000000)}`;
             const event_id = `lead_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
 
-            if (kommoId === "opendrust090") {
+            if (kommoId === "opendrust090" || kommoId === "woncoinbots2") {
               console.log("aca entro uno que se le crea el leadId")
               registro.leadId = leadId.toString();
               await registro.save();
@@ -468,6 +469,8 @@ app.post("/vip", async (req, res) => {
 
     if (kommoId === "opendrust090") {
       Modelo = RegistroAlan;
+    } else if (kommoId === "woncoinbots2") {
+      Modelo = RegistroCash;
     } else {
       return res.status(400).json({
         error: "ID de Kommo no reconocido",

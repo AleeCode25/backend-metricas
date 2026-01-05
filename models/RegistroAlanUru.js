@@ -61,4 +61,4 @@ const registroSchema = new mongoose.Schema({
     }
 });
 
-module.exports = mongoose.model('RegistroAlan', registroSchema);
+module.exports = mongoose.model('RegistroAlanUru', registroSchema);

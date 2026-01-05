@@ -2,6 +2,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
 const RegistroAlan = require("./models/RegistroAlan");
+const RegistroAlanUru = require("./models/RegistroAlanUru");
 const RegistroRochy = require("./models/RegistroRochy");
 const RegistroNeon = require("./models/RegistroNeon");
 const RegistroDobleAs = require("./models/RegistroDobleAs");
@@ -72,6 +73,8 @@ app.post("/guardar", async (req, res) => {
 
     if (kommoId === "opendrust090") {
       existente = await RegistroAlan.findOne({ id });
+    } else if (kommoId === "marygobert2026") {
+      existente = await RegistroAlanUru.findOne({ id });
     } else if (kommoId === "urbanjadeok") {
       existente = await RegistroRochy.findOne({ id });
     } else if (kommoId === "neonvip") {
@@ -103,6 +106,17 @@ app.post("/guardar", async (req, res) => {
         leadId: "",
       });
 
+      await nuevoRegistro.save();
+    } else if (kommoId === "marygobert2026") {
+      nuevoRegistro = new RegistroAlanUru({
+        id,
+        token,
+        pixel,
+        ip,
+        fbclid,
+        mensaje,
+        leadId: "",
+      });
       await nuevoRegistro.save();
     } else if (kommoId === "urbanjadeok") {
       nuevoRegistro = new RegistroRochy({
@@ -239,6 +253,8 @@ app.post("/verificacion", async (req, res) => {
         Modelo = RegistroDobleAs;
       } else if (kommoId === "opendrust090") {
         Modelo = RegistroAlan;
+      } else if (kommoId === "marygobert2026") {
+        Modelo = RegistroAlanUru;
       } else if (kommoId === "urbanjadeok") {
         Modelo = RegistroRochy;
       } else if (kommoId === "neonvip") {
@@ -290,7 +306,7 @@ app.post("/verificacion", async (req, res) => {
             const fbp = cookies._fbp || `fb.1.${Math.floor(Date.now() / 1000)}.${Math.floor(1000000000 + Math.random() * 9000000000)}`;
             const event_id = `lead_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
 
-            if (kommoId === "opendrust090" || kommoId === "woncoinbots2") {
+            if (kommoId === "opendrust090" || kommoId === "woncoinbots2" || kommoId === "marygobert2026") {
               console.log("aca entro uno que se le crea el leadId")
               registro.leadId = leadId.toString();
               await registro.save();
@@ -471,6 +487,8 @@ app.post("/vip", async (req, res) => {
       Modelo = RegistroAlan;
     } else if (kommoId === "woncoinbots2") {
       Modelo = RegistroCash;
+    } else if (kommoId === "marygobert2026") {
+      Modelo = RegistroAlanUru;
     } else {
       return res.status(400).json({
         error: "ID de Kommo no reconocido",
@@ -500,7 +518,7 @@ app.post("/vip", async (req, res) => {
           // ***************************************************************
           // ESTA LÍNEA AHORA FUNCIONARÁ PORQUE 'lead' ESTÁ EN SCOPE
           // ***************************************************************
-          if (lead.price >= 10000) {
+          if ((lead.price >= 10000 && kommoId === "opendrust090") || (lead.price >= 10000 && kommoId === "woncoinbots2")) {
 
             if (lead.price >= 50000) {
               console.log("El lead califica como Mega VIP, procediendo con el pixel Mega Vip.");
@@ -553,6 +571,60 @@ app.post("/vip", async (req, res) => {
               mensaje: "Verificación completada exitosamente",
               estado: "verificado"
             });
+          } else if (lead.price >= 2000 && kommoId === "marygobert2026") {
+
+            if (lead.price >= 6000) {
+              console.log("El lead califica como Mega VIP Uru, procediendo con el pixel Mega Vip.");
+            } else if (lead.price >= 4000) {
+              console.log("El lead califica como Ultra VIP Uru, procediendo con el pixel Ultra Vip.");
+            } else {
+              console.log("El lead es VIP Uru, procediendo con el pixel VIP.");
+            }
+
+            // URL con el parámetro access_token correctamente
+            const pixelEndpointUrl = `https://graph.facebook.com/v18.0/${registro.pixel}/events?access_token=${registro.token}`;
+
+            const eventData = {
+              event_name: lead.price >= 6000 ? "MegaVIP" : lead.price >= 4000 ? "ClientesUltraVIP" : "ClientesVIP",
+              event_id, // Usando el event_id definido arriba
+              event_time: Math.floor(Date.now() / 1000),
+              action_source: "website",
+              event_source_url: `https://777fortuna.win/`,
+              user_data: {
+                client_ip_address: registro.ip,
+                client_user_agent: "Server-side",
+                fbc: registro.fbclid ? `fb.1.${Math.floor(Date.now() / 1000)}.${registro.fbclid}` : null,
+                fbp: `fb.1.${Math.floor(Date.now() / 1000)}.${Math.floor(1000000000 + Math.random() * 9000000000)}`,
+                em: registro.email ? require("crypto").createHash("sha256").update(registro.email).digest("hex") : undefined,
+              },
+              custom_data: {
+                currency: "ARS",
+                value: lead.price
+              },
+              // event_id: `vip_${Date.now()}_${Math.random().toString(36).substring(2, 10)}` // Ojo: estabas definiendo event_id dos veces. Usamos el de arriba.
+            };
+
+            console.log("Datos del evento a enviar:", JSON.stringify(eventData, null, 2));
+            console.log("URL del Pixel:", pixelEndpointUrl);
+
+            const pixelResponse = await axios.post(
+              pixelEndpointUrl,
+              {
+                data: [eventData],
+              },
+              {
+                headers: {
+                  "Content-Type": "application/json",
+                },
+              }
+            );
+
+            console.log("📡 Pixel VIP de Uru ejecutado con éxito:", pixelResponse.data);
+            return res.status(200).json({
+              mensaje: "Verificación completada exitosamente",
+              estado: "verificado"
+            });
+
           } else {
             console.log("El lead no cumple con el valor mínimo para VIP.");
             return res.status(400).json({

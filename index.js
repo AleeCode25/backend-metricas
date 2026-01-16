@@ -8,6 +8,7 @@ const RegistroNeon = require("./models/RegistroNeon");
 const RegistroDobleAs = require("./models/RegistroDobleAs");
 const RegistroJoker = require("./models/RegistroJoker");
 const RegistroCash = require("./models/RegistroCash");
+const RegistroAzar = require("./models/RegistroAzar");
 const axios = require('axios');
 const cookieParser = require("cookie-parser");
 
@@ -85,6 +86,8 @@ app.post("/guardar", async (req, res) => {
       existente = await RegistroJoker.findOne({ id });
     } else if (kommoId === "woncoinbots2") {
       existente = await RegistroCash.findOne({ id });
+    } else if (kommoId === "azlpublic6") {
+      existente = await RegistroAzar.findOne({ id });
     } else {
       return res.status(400).json({ error: "ID de Kommo no reconocido" });
     }
@@ -173,6 +176,16 @@ app.post("/guardar", async (req, res) => {
         leadId: "",
       });
       await nuevoRegistro.save();
+    } else if (kommoId === "azlpublic6") {
+      nuevoRegistro = new RegistroAzar({
+        id,
+        token,
+        pixel,
+        ip,
+        fbclid,
+        mensaje,
+        leadId: "",
+      }); 
     } else {
       return res.status(400).json({ error: "ID de Kommo no reconocido" });
     }
@@ -265,6 +278,8 @@ app.post("/verificacion", async (req, res) => {
         Modelo = RegistroJoker;
       } else if (kommoId === "woncoinbots2") {
         Modelo = RegistroCash;
+      } else if (kommoId === "azlpublic6") {
+        Modelo = RegistroAzar;
       } else {
         return res.status(400).json({
           error: "ID de Kommo no reconocido",
@@ -306,7 +321,7 @@ app.post("/verificacion", async (req, res) => {
             const fbp = cookies._fbp || `fb.1.${Math.floor(Date.now() / 1000)}.${Math.floor(1000000000 + Math.random() * 9000000000)}`;
             const event_id = `lead_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
 
-            if (kommoId === "opendrust090" || kommoId === "woncoinbots2" || kommoId === "marygobert2026") {
+            if (kommoId === "opendrust090" || kommoId === "woncoinbots2" || kommoId === "marygobert2026" || kommoId === "azlpublic6") {
               console.log("aca entro uno que se le crea el leadId")
               registro.leadId = leadId.toString();
               await registro.save();
@@ -489,6 +504,8 @@ app.post("/vip", async (req, res) => {
       Modelo = RegistroCash;
     } else if (kommoId === "marygobert2026") {
       Modelo = RegistroAlanUru;
+    } else if (kommoId === "azlpublic6") {
+      Modelo = RegistroAzar;
     } else {
       return res.status(400).json({
         error: "ID de Kommo no reconocido",
@@ -518,7 +535,7 @@ app.post("/vip", async (req, res) => {
           // ***************************************************************
           // ESTA LÍNEA AHORA FUNCIONARÁ PORQUE 'lead' ESTÁ EN SCOPE
           // ***************************************************************
-          if ((lead.price >= 10000 && kommoId === "opendrust090") || (lead.price >= 10000 && kommoId === "woncoinbots2")) {
+          if ((lead.price >= 10000 && kommoId === "opendrust090") || (lead.price >= 10000 && kommoId === "woncoinbots2") || (lead.price >= 10000 && kommoId === "azlpublic6")) {
 
             if (lead.price >= 50000) {
               console.log("El lead califica como Mega VIP, procediendo con el pixel Mega Vip.");

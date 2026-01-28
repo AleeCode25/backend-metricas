@@ -192,8 +192,14 @@ app.post("/guardar", async (req, res) => {
 
     res.status(201).json({ mensaje: "Datos guardados con éxito" });
 
+    if(res.statusCode !== 201){
+      console.error("❌ Error al guardar los datos, código de estado:", res.statusCode);
+    }
+
     console.log("✅ Registro guardado:", nuevoRegistro);
     console.log("kommoId:", kommoId);
+
+    
 
   } catch (err) {
     console.error(err);

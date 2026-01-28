@@ -186,6 +186,7 @@ app.post("/guardar", async (req, res) => {
         mensaje,
         leadId: "",
       }); 
+      await nuevoRegistro.save();
     } else {
       return res.status(400).json({ error: "ID de Kommo no reconocido" });
     }

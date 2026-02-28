@@ -1121,10 +1121,19 @@ app.post("/cargar", async (req, res) => {
         formData.append("operation", "in");
         formData.append("api_token", api_token);
 
-        const cargaResponse = await axios.post(
-          `https://admin.reysanto.com/index.php?act=admin&area=balance&type=frame&id=${nombreDelLead}&response=js`,
-          formData
-        );
+        let cargaResponse;
+
+        if (plataformaSeleccionada === 'fortuna') {
+          cargaResponse = await axios.post(
+            `https://admin.777fortuna.vip/index.php?act=admin&area=balance&type=frame&id=${nombreDelLead}&response=jsindex.php?act=admin&area=balance&response=js`,
+            formData
+          );
+        } else if (plataformaSeleccionada === 'rey santo') {
+          cargaResponse = await axios.post(
+            `https://admin.reysanto.com/index.php?act=admin&area=balance&type=frame&id=${nombreDelLead}&response=js`,
+            formData
+          );
+        }
 
         const cargaData = cargaResponse.data;
 

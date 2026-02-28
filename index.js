@@ -1060,6 +1060,7 @@ app.post("/cargar", async (req, res) => {
 
   if (kommoId === "lafortuna") {
     MENSAJEENVIAR_FIELD_ID = 1902536;
+    api_token = "c9a837bc0cfe1113a8867b7d105ab0087b59b785c0a2d28ac2717ce520931ce2";
   } else if (kommoId === "neonvip") {
     MENSAJEENVIAR_FIELD_ID = 1407554;
     api_token = "649f298de66e450f91b68832d3701d76a2862c5403d0b71acc072c2b79b87ed9";

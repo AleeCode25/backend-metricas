@@ -1125,7 +1125,7 @@ app.post("/cargar", async (req, res) => {
 
         if (plataformaSeleccionada === 'fortuna') {
           cargaResponse = await axios.post(
-            `https://admin.777fortuna.vip/index.php?act=admin&area=balance&type=frame&id=${nombreDelLead}&response=jsindex.php?act=admin&area=balance&response=js`,
+            `https://admin.777fortuna.vip/index.php?act=admin&area=balance&type=frame&id=${nombreDelLead}&response=js`,
             formData
           );
         } else if (plataformaSeleccionada === 'rey santo') {
@@ -1134,6 +1134,7 @@ app.post("/cargar", async (req, res) => {
             formData
           );
         }
+
 
         const cargaData = cargaResponse.data;
 

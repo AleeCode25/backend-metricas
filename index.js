@@ -129,6 +129,7 @@ app.post("/guardar", async (req, res) => {
         ip,
         fbclid,
         mensaje,
+        leadId: "",
       });
 
       await nuevoRegistro.save();
@@ -328,7 +329,7 @@ app.post("/verificacion", async (req, res) => {
             const fbp = cookies._fbp || `fb.1.${Math.floor(Date.now() / 1000)}.${Math.floor(1000000000 + Math.random() * 9000000000)}`;
             const event_id = `lead_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
 
-            if (kommoId === "opendrust090" || kommoId === "woncoinbots2" || kommoId === "marygobert2026" || kommoId === "azlpublic6") {
+            if (kommoId === "opendrust090" || kommoId === "woncoinbots2" || kommoId === "marygobert2026" || kommoId === "azlpublic6" || kommoId === "urbanjadeok" ) {
               console.log("aca entro uno que se le crea el leadId")
               registro.leadId = leadId.toString();
               await registro.save();
@@ -513,6 +514,8 @@ app.post("/vip", async (req, res) => {
       Modelo = RegistroAlanUru;
     } else if (kommoId === "azlpublic6") {
       Modelo = RegistroAzar;
+    } else if (kommoId === "urbanjadeok") {
+      Modelo = RegistroRochy;
     } else {
       return res.status(400).json({
         error: "ID de Kommo no reconocido",
@@ -542,7 +545,7 @@ app.post("/vip", async (req, res) => {
           // ***************************************************************
           // ESTA LÍNEA AHORA FUNCIONARÁ PORQUE 'lead' ESTÁ EN SCOPE
           // ***************************************************************
-          if ((lead.price >= 2000 && kommoId === "opendrust090") || (lead.price >= 2000 && kommoId === "woncoinbots2") || (lead.price >= 2000 && kommoId === "azlpublic6")) {
+          if ((lead.price >= 2000 && kommoId === "opendrust090") || (lead.price >= 2000 && kommoId === "woncoinbots2") || (lead.price >= 2000 && kommoId === "azlpublic6") || (lead.price >= 2000 && kommoId === "urbanjadeok")) {
 
             if (lead.price >= 50000) {
               console.log("El lead califica como Mega VIP, procediendo con el pixel Mega Vip.");

@@ -136,7 +136,7 @@ app.post("/guardar", async (req, res) => {
 
 app.post("/verificacion", async (req, res) => {
   const body = req.body;
-  const { kommoId, token, kommoIddoble } = req.query;
+  const { kommoId, token, kommoIddoble, compra } = req.query;
 
   console.log("🐛 DEBUG: kommoId recibido:", kommoId);
   console.log(JSON.stringify(body, null, 2), "← este es lo que devuelve el body");
@@ -235,7 +235,7 @@ app.post("/verificacion", async (req, res) => {
               console.log("Registro guardado con nuevo leadId:", registro.leadId);
             }
 
-            if(kommoId === "publicidadwoncoin" || kommoId === "azlpublic6"){
+            if(kommoId === "publicidadwoncoin" && compra === "si" || kommoId === "azlpublic6"){
               return console.log( `${kommoId} es Purchase no se pixelea como LeadCorrectoJoker` );
             }
 

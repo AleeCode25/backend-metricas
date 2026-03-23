@@ -136,7 +136,7 @@ app.post("/guardar", async (req, res) => {
 
 app.post("/verificacion", async (req, res) => {
   const body = req.body;
-  const { kommoId, token, kommoIddoble, compra } = req.query;
+  const { kommoId, token, kommoIddoble } = req.query;
 
   console.log("🐛 DEBUG: kommoId recibido:", kommoId);
   console.log(JSON.stringify(body, null, 2), "← este es lo que devuelve el body");
@@ -235,7 +235,7 @@ app.post("/verificacion", async (req, res) => {
               console.log("Registro guardado con nuevo leadId:", registro.leadId);
             }
 
-            if(kommoId === "publicidadwoncoin" && compra === "si" || kommoId === "azlpublic6"){
+            if(kommoId === "publicidadwoncoin" || kommoId === "azlpublic6"){
               return console.log( `${kommoId} es Purchase no se pixelea como LeadCorrectoJoker` );
             }
 
@@ -446,7 +446,7 @@ app.post("/buy", async (req, res) => {
             event_id, // Usando el event_id definido arriba
             event_time: Math.floor(Date.now() / 1000),
             action_source: "website",
-            event_source_url: `https://777fortunavip.com/`,
+            event_source_url: `https://${kommoId}.kommo.com/`,
             user_data: {
               client_ip_address: registro.ip,
               client_user_agent: "Server-side",
@@ -652,7 +652,7 @@ app.post("/vip", async (req, res) => {
               event_id, // Usando el event_id definido arriba
               event_time: Math.floor(Date.now() / 1000),
               action_source: "website",
-              event_source_url: `https://777fortunavip.com/`,
+              event_source_url: `https://${kommoId}.kommo.com/`,
               user_data: {
                 client_ip_address: registro.ip,
                 client_user_agent: "Server-side",
@@ -705,7 +705,7 @@ app.post("/vip", async (req, res) => {
               event_id, // Usando el event_id definido arriba
               event_time: Math.floor(Date.now() / 1000),
               action_source: "website",
-              event_source_url: `https://777fortuna.win/`,
+              event_source_url: `https://${kommoId}.kommo.com/`,
               user_data: {
                 client_ip_address: registro.ip,
                 client_user_agent: "Server-side",

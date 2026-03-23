@@ -51,17 +51,21 @@ const isValidIP = (ip) => {
 
 app.post("/guardar", async (req, res) => {
   try {
-    const { id, token, pixel, ip, fbclid, mensaje } =
-      req.body;
-
+    let { id, token, pixel, ip, fbclid, mensaje } = req.body;
     const { kommoId } = req.query;
+
+    // --- LÓGICA ESPECÍFICA PARA PUBLICIDADWONCOIN ---
+    // Si es este kommoId, limpiamos el ID de Amazon (UUID) para que sea solo numérico
+    if (kommoId === "publicidadwoncoin" && id) {
+      id = id.replace(/\D/g, ""); // Quita todo lo que no sea un número
+    }
 
     // 1. Verificación de campos obligatorios
     if (!id || !token || !pixel || !ip) {
       return res.status(400).json({ error: "Faltan campos obligatorios" });
     }
 
-    // 2. Validación de tipos y formatos
+    // 2. Validación de tipos y formatos (Ahora pasará porque id es solo números)
     if (!/^\d+$/.test(id)) {
       return res.status(400).json({ error: "ID debe ser numérico" });
     }
@@ -72,6 +76,7 @@ app.post("/guardar", async (req, res) => {
 
     let existente;
 
+    // Buscamos según el kommoId
     if (kommoId === "opendrust090") {
       existente = await RegistroAlan.findOne({ id });
     } else if (kommoId === "marygobert2026") {
@@ -84,7 +89,7 @@ app.post("/guardar", async (req, res) => {
       existente = await RegistroDobleAs.findOne({ id });
     } else if (kommoId === "conline") {
       existente = await RegistroJoker.findOne({ id });
-    } else if (kommoId === "woncoinbots2" || kommoId === "publicidadwoncoin" || kommoId === "publicidadgamble" || kommoId === "publicidadlacaja" || kommoId === "publicidadvegas") {
+    } else if (["woncoinbots2", "publicidadwoncoin", "publicidadgamble", "publicidadlacaja", "publicidadvegas"].includes(kommoId)) {
       existente = await RegistroCash.findOne({ id });
     } else if (kommoId === "azlpublic6") {
       existente = await RegistroAzar.findOne({ id });
@@ -96,116 +101,36 @@ app.post("/guardar", async (req, res) => {
       return res.status(409).json({ error: "Este ID ya fue registrado" });
     }
 
+    // 3. Creación del nuevo registro
     let nuevoRegistro;
+    const datosBase = { id, token, pixel, ip, fbclid, mensaje };
 
     if (kommoId === "opendrust090") {
-      nuevoRegistro = new RegistroAlan({
-        id,
-        token,
-        pixel,
-        ip,
-        fbclid,
-        mensaje,
-        leadId: "",
-      });
-
-      await nuevoRegistro.save();
+      nuevoRegistro = new RegistroAlan({ ...datosBase, leadId: "" });
     } else if (kommoId === "marygobert2026") {
-      nuevoRegistro = new RegistroAlanUru({
-        id,
-        token,
-        pixel,
-        ip,
-        fbclid,
-        mensaje,
-        leadId: "",
-      });
-      await nuevoRegistro.save();
+      nuevoRegistro = new RegistroAlanUru({ ...datosBase, leadId: "" });
     } else if (kommoId === "urbanjadeok") {
-      nuevoRegistro = new RegistroRochy({
-        id,
-        token,
-        pixel,
-        ip,
-        fbclid,
-        mensaje,
-        leadId: "",
-      });
-
-      await nuevoRegistro.save();
+      nuevoRegistro = new RegistroRochy({ ...datosBase, leadId: "" });
     } else if (kommoId === "neonvip") {
-      nuevoRegistro = new RegistroNeon({
-        id,
-        token,
-        pixel,
-        ip,
-        fbclid,
-        mensaje,
-      });
-
-      await nuevoRegistro.save();
+      nuevoRegistro = new RegistroNeon(datosBase);
     } else if (kommoId === "kommo202513") {
-      nuevoRegistro = new RegistroDobleAs({
-        id,
-        token,
-        pixel,
-        ip,
-        fbclid,
-        mensaje,
-      });
-
-      await nuevoRegistro.save();
+      nuevoRegistro = new RegistroDobleAs(datosBase);
     } else if (kommoId === "conline") {
-      nuevoRegistro = new RegistroJoker({
-        id,
-        token,
-        pixel,
-        ip,
-        fbclid,
-        mensaje,
-      });
-
-      await nuevoRegistro.save();
-    } else if (kommoId === "woncoinbots2" || kommoId === "publicidadwoncoin" || kommoId === "publicidadgamble" || kommoId === "publicidadlacaja" || kommoId === "publicidadvegas") {
-      nuevoRegistro = new RegistroCash({
-        id,
-        token,
-        pixel,
-        ip,
-        fbclid,
-        mensaje,
-        leadId: "",
-      });
-      await nuevoRegistro.save();
+      nuevoRegistro = new RegistroJoker(datosBase);
+    } else if (["woncoinbots2", "publicidadwoncoin", "publicidadgamble", "publicidadlacaja", "publicidadvegas"].includes(kommoId)) {
+      nuevoRegistro = new RegistroCash({ ...datosBase, leadId: "" });
     } else if (kommoId === "azlpublic6") {
-      nuevoRegistro = new RegistroAzar({
-        id,
-        token,
-        pixel,
-        ip,
-        fbclid,
-        mensaje,
-        leadId: "",
-      }); 
-      await nuevoRegistro.save();
-    } else {
-      return res.status(400).json({ error: "ID de Kommo no reconocido" });
+      nuevoRegistro = new RegistroAzar({ ...datosBase, leadId: "" });
     }
 
-    res.status(201).json({ mensaje: "Datos guardados con éxito" });
+    await nuevoRegistro.save();
 
-    if(res.statusCode !== 201){
-      console.error("❌ Error al guardar los datos, código de estado:", res.statusCode);
-    }
-
-    console.log("✅ Registro guardado:", nuevoRegistro);
-    console.log("kommoId:", kommoId);
-
-    
+    console.log("✅ Registro guardado con éxito:", id, "para", kommoId);
+    return res.status(201).json({ mensaje: "Datos guardados con éxito" });
 
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Error interno al guardar los datos" });
+    console.error("❌ Error en /guardar:", err);
+    return res.status(500).json({ error: "Error interno al guardar los datos" });
   }
 });
 

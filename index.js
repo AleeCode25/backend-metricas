@@ -138,63 +138,44 @@ app.post("/verificacion", async (req, res) => {
   const body = req.body;
   const { kommoId, token, kommoIddoble } = req.query;
 
-  // --- LOGS DE DEPURACIÓN INICIANDO LA RUTA ---
   console.log("🐛 DEBUG: kommoId recibido:", kommoId);
-  console.log("🐛 DEBUG: token recibido:", token);
-  // ------------------------------------------
-
   console.log(JSON.stringify(body, null, 2), "← este es lo que devuelve el body");
+  
   const leadId = req.body?.leads?.add?.[0]?.id;
 
-  // --- LOG DE DEPURACIÓN PARA leadId ---
-  console.log("🐛 DEBUG: leadId extraído del webhook:", leadId);
-  // ------------------------------------
-
   if (!leadId) {
-    return res.status(400).json({
-      error: "Lead ID no encontrado",
-      detalles: {
-        tipo: 'lead_no_encontrado',
-        mensaje: "No se encontró el ID del lead en la solicitud",
-        timestamp: new Date()
-      }
-    });
+    return res.status(400).json({ error: "Lead ID no encontrado" });
   }
 
   const contacto = await obtenerContactoDesdeLead(leadId, kommoId, token);
 
   if (contacto) {
-    console.log("🧾 ID del contacto:", contacto.id);
-
-    const leadResponse = await axios.get(`https://${kommoId}.kommo.com/api/v4/leads/${leadId}?with=custom_fields_values`, { // Añadido ?with=custom_fields_values
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
+    const leadResponse = await axios.get(`https://${kommoId}.kommo.com/api/v4/leads/${leadId}?with=custom_fields_values`, {
+      headers: { 'Authorization': `Bearer ${token}` }
     });
     const lead = leadResponse.data;
 
-    // --- LOG DE DEPURACIÓN PARA el objeto lead completo ---
-    console.log("🐛 DEBUG: Objeto lead COMPLETO devuelto por Kommo API:", JSON.stringify(lead, null, 2));
-    // ----------------------------------------------------
-
-    let campoMensaje = lead.custom_fields_values?.find(field =>
-      field.field_name === "mensajeenviar"
-    );
+    let campoMensaje = lead.custom_fields_values?.find(field => field.field_name === "mensajeenviar");
     let mensaje = campoMensaje?.values?.[0]?.value;
 
-    // --- LOGS DE DEPURACIÓN PARA campoMensaje y mensaje ---
-    console.log("🐛 DEBUG: Valor de 'campoMensaje' encontrado:", JSON.stringify(campoMensaje, null, 2));
-    console.log("🐛 DEBUG: Valor final de 'mensaje' antes de regex:", mensaje);
-    // ---------------------------------------------------
+    console.log("📝 Mensaje guardado en el lead:", mensaje);
 
-    console.log("📝 Mensaje guardado en el lead (mensajeenviar):", mensaje);
+    // --- CORRECCIÓN AQUÍ ---
+    // Primero extraemos lo que haya entre corchetes [] o el número largo
+    let idExtraido = mensaje?.match(/\[(.*?)\]/)?.[1] || mensaje?.match(/\d{13,}/)?.[0];
+    
+    // Si es publicidadwoncoin, limpiamos el ID para que coincida con lo que guardamos
+    let idFinalParaBusqueda = idExtraido;
+    if (kommoId === "publicidadwoncoin" && idExtraido) {
+      idFinalParaBusqueda = idExtraido.replace(/\D/g, ""); 
+    }
 
-    const idExtraido = mensaje?.match(/\d{13,}/)?.[0];
-    console.log("🧾 ID extraído del mensaje:", idExtraido); //cambios
+    console.log("🧾 ID original extraído:", idExtraido);
+    console.log("🔍 ID final usado para buscar en BD:", idFinalParaBusqueda);
 
-    if (idExtraido) {
+    if (idFinalParaBusqueda) {
       let Modelo;
-
+      // ... (Tus condicionales de Modelo se mantienen igual)
       if (kommoId === "opendrust090" && kommoIddoble === "kommo202513") {
         Modelo = RegistroDobleAs;
       } else if (kommoId === "opendrust090") {
@@ -209,25 +190,18 @@ app.post("/verificacion", async (req, res) => {
         Modelo = RegistroDobleAs;
       } else if (kommoId === "conline") {
         Modelo = RegistroJoker;
-      } else if (kommoId === "woncoinbots2" || kommoId === "publicidadwoncoin" || kommoId === "publicidadgamble" || kommoId === "publicidadlacaja" || kommoId === "publicidadvegas") {
+      } else if (["woncoinbots2", "publicidadwoncoin", "publicidadgamble", "publicidadlacaja", "publicidadvegas"].includes(kommoId)) {
         Modelo = RegistroCash;
       } else if (kommoId === "azlpublic6") {
         Modelo = RegistroAzar;
-      } else {
-        return res.status(400).json({
-          error: "ID de Kommo no reconocido",
-          detalles: {
-            tipo: 'kommo_id_no_reconocido',
-            mensaje: `El ID de Kommo '${kommoId}' no es reconocido`,
-            timestamp: new Date()
-          }
-        });
       }
 
       try {
-        let registro = await Modelo.findOne({ id: idExtraido });
+        // Buscamos usando el ID ya limpio
+        let registro = await Modelo.findOne({ id: idFinalParaBusqueda });
 
         if (registro) {
+          console.log("✅ Registro encontrado en BD:", registro.id);
           console.log("✅ Registro encontrado:", registro);
 
           if (registro.isVerified) {

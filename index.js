@@ -140,7 +140,7 @@ app.post("/verificacion", async (req, res) => {
 
   console.log("🐛 DEBUG: kommoId recibido:", kommoId);
   console.log(JSON.stringify(body, null, 2), "← este es lo que devuelve el body");
-  
+
   const leadId = req.body?.leads?.add?.[0]?.id;
 
   if (!leadId) {
@@ -163,11 +163,11 @@ app.post("/verificacion", async (req, res) => {
     // --- CORRECCIÓN AQUÍ ---
     // Primero extraemos lo que haya entre corchetes [] o el número largo
     let idExtraido = mensaje?.match(/\[(.*?)\]/)?.[1] || mensaje?.match(/\d{13,}/)?.[0];
-    
+
     // Si es publicidadwoncoin, limpiamos el ID para que coincida con lo que guardamos
     let idFinalParaBusqueda = idExtraido;
     if (kommoId === "publicidadwoncoin" && idExtraido) {
-      idFinalParaBusqueda = idExtraido.replace(/\D/g, ""); 
+      idFinalParaBusqueda = idExtraido.replace(/\D/g, "");
     }
 
     console.log("🧾 ID original extraído:", idExtraido);
@@ -175,7 +175,6 @@ app.post("/verificacion", async (req, res) => {
 
     if (idFinalParaBusqueda) {
       let Modelo;
-      // ... (Tus condicionales de Modelo se mantienen igual)
       if (kommoId === "opendrust090" && kommoIddoble === "kommo202513") {
         Modelo = RegistroDobleAs;
       } else if (kommoId === "opendrust090") {
@@ -228,12 +227,16 @@ app.post("/verificacion", async (req, res) => {
             const fbp = cookies._fbp || `fb.1.${Math.floor(Date.now() / 1000)}.${Math.floor(1000000000 + Math.random() * 9000000000)}`;
             const event_id = `lead_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
 
-            if (kommoId === "opendrust090" || kommoId === "woncoinbots2" || kommoId === "publicidadwoncoin" || kommoId === "publicidadgamble" || kommoId === "publicidadlacaja" || kommoId === "publicidadvegas" || kommoId === "marygobert2026" || kommoId === "azlpublic6" || kommoId === "urbanjadeok" ) {
+            if (kommoId === "opendrust090" || kommoId === "woncoinbots2" || kommoId === "publicidadwoncoin" || kommoId === "publicidadgamble" || kommoId === "publicidadlacaja" || kommoId === "publicidadvegas" || kommoId === "marygobert2026" || kommoId === "azlpublic6" || kommoId === "urbanjadeok") {
               console.log("aca entro uno que se le crea el leadId")
               registro.leadId = leadId.toString();
               await registro.save();
 
               console.log("Registro guardado con nuevo leadId:", registro.leadId);
+            }
+
+            if(kommoId === "publicidadwoncoin" || kommoId === "azlpublic6"){
+              return console.log( `${kommoId} es Purchase no se pixelea como LeadCorrectoJoker` );
             }
 
             // Marcar como verificado
@@ -353,6 +356,193 @@ app.post("/verificacion", async (req, res) => {
   });
 });
 
+app.post("/buy", async (req, res) => {
+  const body = req.body;
+  const { kommoId, token } = req.query;
+
+  // --- LOGS DE DEPURACIÓN INICIANDO LA RUTA ---
+  console.log("🐛 DEBUG: ENTRO PARA COMPRAR");
+  console.log("🐛 DEBUG: kommoId recibido:", kommoId);
+  console.log("🐛 DEBUG: token recibido:", token);
+  // ------------------------------------------
+
+  console.log(JSON.stringify(body, null, 2), "← este es lo que devuelve el body");
+  const leadId = req.body?.leads?.add?.[0]?.id;
+
+  // --- LOG DE DEPURACIÓN PARA leadId ---
+  console.log("🐛 DEBUG: leadId extraído del webhook:", leadId);
+  // ------------------------------------
+
+  if (!leadId) {
+    return res.status(400).json({
+      error: "Lead ID no encontrado",
+      detalles: {
+        tipo: 'lead_no_encontrado',
+        mensaje: "No se encontró el ID del lead en la solicitud",
+        timestamp: new Date()
+      }
+    });
+  }
+
+  const contacto = await obtenerContactoDesdeLead(leadId, kommoId, token);
+
+  // ***************************************************************
+  // AHORA TODA LA LÓGICA PRINCIPAL VA DENTRO DE ESTE 'if'
+  // ***************************************************************
+  if (contacto) {
+    console.log("🧾 ID del contacto:", contacto.id);
+
+    const leadResponse = await axios.get(`https://${kommoId}.kommo.com/api/v4/leads/${leadId}?with=custom_fields_values`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    // 'lead' se define aquí y estará disponible para todo lo que sigue dentro de este bloque
+    const lead = leadResponse.data;
+
+    // --- LOG DE DEPURACIÓN PARA el objeto lead completo ---
+    console.log("🐛 DEBUG: Objeto lead COMPLETO devuelto por Kommo API:", JSON.stringify(lead, null, 2));
+    console.log("🐛 DEBUG: lead.price : ", lead.price);
+    // ----------------------------------------------------
+
+    let Modelo;
+
+    if (kommoId === "publicidadwoncoin") {
+      Modelo = RegistroCash;
+    } else if (kommoId === "azlpublic6") {
+      Modelo = RegistroAzar;
+    } else {
+      return res.status(400).json({
+        error: "ID de Kommo no reconocido",
+        detalles: {
+          tipo: 'kommo_id_no_reconocido',
+          mensaje: `El ID de Kommo '${kommoId}' no es reconocido`,
+          timestamp: new Date()
+        }
+      });
+    }
+
+    try {
+      let registro = await Modelo.findOne({ leadId: leadId });
+
+      if (registro) {
+        console.log("✅ Registro encontrado:", registro);
+
+        try {
+
+          const cookies = req.cookies;
+          const fbclid = registro.fbclid;
+
+          const fbc = cookies._fbc || (fbclid ? `fb.1.${Math.floor(Date.now() / 1000)}.${fbclid}` : null);
+          const fbp = cookies._fbp || `fb.1.${Math.floor(Date.now() / 1000)}.${Math.floor(1000000000 + Math.random() * 9000000000)}`;
+          const event_id = `lead_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+
+          // URL con el parámetro access_token correctamente
+          const pixelEndpointUrl = `https://graph.facebook.com/v18.0/${registro.pixel}/events?access_token=${registro.token}`;
+
+          const eventData = {
+            event_name: "Purchase",
+            event_id, // Usando el event_id definido arriba
+            event_time: Math.floor(Date.now() / 1000),
+            action_source: "website",
+            event_source_url: `https://777fortunavip.com/`,
+            user_data: {
+              client_ip_address: registro.ip,
+              client_user_agent: "Server-side",
+              fbc: registro.fbclid ? `fb.1.${Math.floor(Date.now() / 1000)}.${registro.fbclid}` : null,
+              fbp: `fb.1.${Math.floor(Date.now() / 1000)}.${Math.floor(1000000000 + Math.random() * 9000000000)}`,
+              em: registro.email ? require("crypto").createHash("sha256").update(registro.email).digest("hex") : undefined,
+            },
+            custom_data: {
+              currency: "ARS",
+              value: lead.price
+            },
+          };
+
+          console.log("Datos del evento a enviar:", JSON.stringify(eventData, null, 2));
+          console.log("URL del Pixel:", pixelEndpointUrl);
+
+          const pixelResponse = await axios.post(
+            pixelEndpointUrl,
+            {
+              data: [eventData],
+            },
+            {
+              headers: {
+                "Content-Type": "application/json",
+              },
+            }
+          );
+
+          console.log("📡 Pixel Purchase ejecutado con éxito:", pixelResponse.data);
+          return res.status(200).json({
+            mensaje: "Verificación completada exitosamente",
+            estado: "verificado"
+          });
+
+        } catch (error) {
+          console.error("❌ Error al ejecutar el pixel:", error.response?.data || error.message);
+
+          // Actualizar el registro con el error
+          registro.verificationError = {
+            tipo: 'pixel_error',
+            mensaje: error.response?.data?.error?.message || error.message,
+            timestamp: new Date()
+          };
+          await registro.save();
+
+          if (error.response) {
+            console.error("Estado del error:", error.response.status);
+            console.error("Encabezados del error:", error.response.headers);
+            console.error("Datos del error:", error.response.data);
+          } else if (error.request) {
+            console.error("No se recibió respuesta del servidor:", error.request);
+          } else {
+            console.error("Error desconocido:", error.message);
+          }
+
+          return res.status(500).json({
+            error: "Error al ejecutar el pixel",
+            detalles: registro.verificationError
+          });
+        }
+      } else {
+        console.log("❌ No se encontró un registro con ese ID");
+        return res.status(404).json({
+          error: "Registro no encontrado",
+          detalles: {
+            tipo: 'registro_no_encontrado',
+            mensaje: `No se encontró un registro con el ID ${leadId}`,
+            timestamp: new Date()
+          }
+        });
+      }
+    } catch (error) {
+      console.error("Error al buscar o actualizar el registro:", error);
+      return res.status(500).json({
+        error: "Error interno",
+        detalles: {
+          tipo: 'error_interno',
+          mensaje: error.message,
+          timestamp: new Date()
+        }
+      });
+    }
+
+  } // --- FIN DEL BLOQUE 'if (contacto)' ---
+
+  // Si el código llega aquí, es porque 'contacto' era falso (null o undefined)
+  return res.status(400).json({
+    error: "Contacto no encontrado",
+    detalles: {
+      tipo: 'contacto_no_encontrado',
+      mensaje: "No se pudo obtener la información del contacto",
+      timestamp: new Date()
+    }
+  });
+});
+
 app.post("/vip", async (req, res) => {
   const body = req.body;
   const { kommoId, token } = req.query;
@@ -441,9 +631,7 @@ app.post("/vip", async (req, res) => {
           const fbp = cookies._fbp || `fb.1.${Math.floor(Date.now() / 1000)}.${Math.floor(1000000000 + Math.random() * 9000000000)}`;
           const event_id = `lead_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
 
-          // ***************************************************************
-          // ESTA LÍNEA AHORA FUNCIONARÁ PORQUE 'lead' ESTÁ EN SCOPE
-          // ***************************************************************
+
           if ((lead.price >= 2000 && kommoId === "opendrust090") || (lead.price >= 2000 && kommoId === "woncoinbots2") || (lead.price >= 2000 && kommoId === "publicidadvegas") || (lead.price >= 2000 && kommoId === "publicidadlacaja") || (lead.price >= 2000 && kommoId === "publicidadgamble") || (lead.price >= 2000 && kommoId === "publicidadwoncoin") || (lead.price >= 2000 && kommoId === "azlpublic6") || (lead.price >= 2000 && kommoId === "urbanjadeok")) {
 
             if (lead.price >= 50000) {
@@ -1454,9 +1642,9 @@ app.post("/saldo", async (req, res) => {
       try {
         // 2. REALIZAR LA CARGA EN LA PLATAFORMA EXTERNA
 
-              // 2. REALIZAR LA CARGA EN LA PLATAFORMA EXTERNA
-      const formData = new FormData();
-      formData.append("api_token", api_token);
+        // 2. REALIZAR LA CARGA EN LA PLATAFORMA EXTERNA
+        const formData = new FormData();
+        formData.append("api_token", api_token);
 
         const cargaResponse = await axios.post(`https://admin.reysanto.com/index.php?act=admin&area=users&search=${nombreDelLead}&response=js`, formData);
 
@@ -1467,7 +1655,7 @@ app.post("/saldo", async (req, res) => {
         if (cargaData.users.length > 0) {
 
           console.log(`✅ Consulta de saldo realizada exitosamente en ${plataformaSeleccionada} para el usuario ${nombreDelLead}.`);
-          
+
 
           // Crear el mensaje de confirmación
 

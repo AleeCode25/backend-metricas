@@ -423,6 +423,8 @@ app.post("/buy", async (req, res) => {
             },
           };
 
+          console.log("Datos del evento Purchase a enviar:", JSON.stringify(eventData, null, 2));
+
           const pixelResponse = await axios.post(
             pixelEndpointUrl,
             { data: [eventData] }, // Estructura correcta requerida por FB

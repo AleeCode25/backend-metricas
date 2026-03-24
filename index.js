@@ -235,8 +235,8 @@ app.post("/verificacion", async (req, res) => {
               console.log("Registro guardado con nuevo leadId:", registro.leadId);
             }
 
-            if(kommoId === "publicidadwoncoin" || kommoId === "azlpublic6"){
-              return console.log( `${kommoId} es Purchase no se pixelea como LeadCorrectoJoker` );
+            if (kommoId === "publicidadwoncoin" || kommoId === "azlpublic6") {
+              return console.log(`${kommoId} es Purchase no se pixelea como LeadCorrectoJoker`);
             }
 
             // Marcar como verificado
@@ -438,6 +438,11 @@ app.post("/buy", async (req, res) => {
           const fbp = cookies._fbp || `fb.1.${Math.floor(Date.now() / 1000)}.${Math.floor(1000000000 + Math.random() * 9000000000)}`;
           const event_id = `lead_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
 
+          // Marcar como verificado
+          registro.isVerified = true;
+          registro.verificationStatus = 'verificado';
+          await registro.save();
+
           // URL con el parámetro access_token correctamente
           const pixelEndpointUrl = `https://graph.facebook.com/v18.0/${registro.pixel}/events?access_token=${registro.token}`;
 
@@ -485,6 +490,8 @@ app.post("/buy", async (req, res) => {
           console.error("❌ Error al ejecutar el pixel:", error.response?.data || error.message);
 
           // Actualizar el registro con el error
+          registro.isVerified = false;
+          registro.verificationStatus = 'fallido';
           registro.verificationError = {
             tipo: 'pixel_error',
             mensaje: error.response?.data?.error?.message || error.message,

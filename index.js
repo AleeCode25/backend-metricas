@@ -405,7 +405,7 @@ app.post("/buy", async (req, res) => {
           const pixelEndpointUrl = `https://graph.facebook.com/v18.0/${registro.pixel}/events?access_token=${registro.token}`;
 
           const eventData = {
-            event_name: "Purchase",
+            event_name: "TestEvent",
             event_id: event_id,
             event_time: Math.floor(Date.now() / 1000),
             action_source: "website",
@@ -426,7 +426,7 @@ app.post("/buy", async (req, res) => {
 
           const pixelResponse = await axios.post(
             pixelEndpointUrl,
-            { data: [eventData] }, // Estructura correcta requerida por FB
+            { data: [eventData], "test_event_code": "TEST55255" }, // Estructura correcta requerida por FB
             { headers: { "Content-Type": "application/json" } }
           );
 

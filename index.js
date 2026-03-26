@@ -392,6 +392,15 @@ app.post("/buy", async (req, res) => {
 
       if (registro) {
         try {
+
+          if (registro.isVerified) {
+            return console.log("Registro ya pixeleado")
+          }
+
+          if (lead.price < 200) {
+            return console.log("El valor del lead no cumple con el mínimo para Purchase");
+          }
+
           // --- MEJORA: Normalización de datos para Facebook ---
           const crypto = require("crypto");
           

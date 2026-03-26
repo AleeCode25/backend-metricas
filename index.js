@@ -235,7 +235,7 @@ app.post("/verificacion", async (req, res) => {
               console.log("Registro guardado con nuevo leadId:", registro.leadId);
             }
 
-            if (kommoId === "publicidadwoncoin" || kommoId === "azlpublic6") {
+            if (kommoId === "publicidadwoncoin" || kommoId === "azlpublic6" || kommoId === "opendrust090") {
               return console.log(`${kommoId} es Purchase no se pixelea como LeadCorrectoJoker`);
             }
 
@@ -381,6 +381,8 @@ app.post("/buy", async (req, res) => {
       Modelo = RegistroCash;
     } else if (kommoId === "azlpublic6") {
       Modelo = RegistroAzar;
+    } else if ( kommoId === "opendrust090") {
+      Modelo = RegistroAlan;
     } else {
       return res.status(400).json({ error: "ID de Kommo no reconocido" });
     }

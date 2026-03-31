@@ -11,6 +11,7 @@ const RegistroCash = require("./models/RegistroCash");
 const RegistroAzar = require("./models/RegistroAzar");
 const axios = require('axios');
 const cookieParser = require("cookie-parser");
+const net = require('net'); // Requerido para validar IP correctamente
 
 const app = express();
 const PORT = 3000;
@@ -43,94 +44,69 @@ mongoose.connection.on('disconnected', () => {
   console.log('🟡 MongoDB desconectado');
 });
 
-const isValidIP = (ip) => {
-  const regex =
-    /^(25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)){3}$/;
-  return regex.test(ip);
-};
-
 app.post("/guardar", async (req, res) => {
   try {
     let { id, token, pixel, ip, fbclid, mensaje } = req.body;
     const { kommoId } = req.query;
 
-    // --- LÓGICA ESPECÍFICA PARA PUBLICIDADWONCOIN ---
-    // Si es este kommoId, limpiamos el ID de Amazon (UUID) para que sea solo numérico
+    // 1. Limpieza de ID para publicidadwoncoin
     if (kommoId === "publicidadwoncoin" && id) {
-      id = id.replace(/\D/g, ""); // Quita todo lo que no sea un número
+      id = id.replace(/\D/g, ""); 
     }
 
-    // 1. Verificación de campos obligatorios
-    if (!id || !token || !pixel || !ip) {
-      return res.status(400).json({ error: "Faltan campos obligatorios" });
+    // 2. Verificación de campos esenciales
+    if (!id || !token || !pixel) {
+      return res.status(400).json({ error: "Faltan campos obligatorios (id, token o pixel)" });
     }
 
-    // 2. Validación de tipos y formatos (Ahora pasará porque id es solo números)
-    if (!/^\d+$/.test(id)) {
-      return res.status(400).json({ error: "ID debe ser numérico" });
-    }
+    // 3. Validación de IP flexible (Acepta IPv4 e IPv6)
+    const ipValida = ip && net.isIP(ip) !== 0;
+    const ipFinal = ipValida ? ip : "0.0.0.0"; // No bloquea si la IP falla, usa una genérica
 
-    if (!isValidIP(ip)) {
-      return res.status(400).json({ error: "IP no es válida" });
-    }
+    // 4. Mapeo de Modelos
+    const modelos = {
+      "opendrust090": RegistroAlan,
+      "marygobert2026": RegistroAlanUru,
+      "urbanjadeok": RegistroRochy,
+      "neonvip": RegistroNeon,
+      "kommo202513": RegistroDobleAs,
+      "conline": RegistroJoker,
+      "azlpublic6": RegistroAzar,
+      "woncoinbots2": RegistroCash,
+      "publicidadwoncoin": RegistroCash,
+      "publicidadgamble": RegistroCash,
+      "publicidadlacaja": RegistroCash,
+      "publicidadvegas": RegistroCash
+    };
 
-    let existente;
-
-    // Buscamos según el kommoId
-    if (kommoId === "opendrust090") {
-      existente = await RegistroAlan.findOne({ id });
-    } else if (kommoId === "marygobert2026") {
-      existente = await RegistroAlanUru.findOne({ id });
-    } else if (kommoId === "urbanjadeok") {
-      existente = await RegistroRochy.findOne({ id });
-    } else if (kommoId === "neonvip") {
-      existente = await RegistroNeon.findOne({ id });
-    } else if (kommoId === "kommo202513") {
-      existente = await RegistroDobleAs.findOne({ id });
-    } else if (kommoId === "conline") {
-      existente = await RegistroJoker.findOne({ id });
-    } else if (["woncoinbots2", "publicidadwoncoin", "publicidadgamble", "publicidadlacaja", "publicidadvegas"].includes(kommoId)) {
-      existente = await RegistroCash.findOne({ id });
-    } else if (kommoId === "azlpublic6") {
-      existente = await RegistroAzar.findOne({ id });
-    } else {
+    const ModeloSeleccionado = modelos[kommoId];
+    if (!ModeloSeleccionado) {
       return res.status(400).json({ error: "ID de Kommo no reconocido" });
     }
 
-    if (existente) {
-      return res.status(409).json({ error: "Este ID ya fue registrado" });
+    // 5. UPSERT: Si existe lo actualiza, si no, lo crea. 
+    // Esto evita el error 409 y la pérdida de datos por reintentos.
+    const datosBase = { id, token, pixel, ip: ipFinal, fbclid, mensaje };
+    
+    // Añadir leadId vacío si el modelo lo requiere (basado en tu lógica anterior)
+    const requiereLeadId = ["opendrust090", "marygobert2026", "urbanjadeok", "woncoinbots2", "publicidadwoncoin", "publicidadgamble", "publicidadlacaja", "publicidadvegas", "azlpublic6"].includes(kommoId);
+    
+    if (requiereLeadId) {
+      datosBase.leadId = "";
     }
 
-    // 3. Creación del nuevo registro
-    let nuevoRegistro;
-    const datosBase = { id, token, pixel, ip, fbclid, mensaje };
+    await ModeloSeleccionado.findOneAndUpdate(
+      { id: id }, 
+      datosBase, 
+      { upsert: true, new: true }
+    );
 
-    if (kommoId === "opendrust090") {
-      nuevoRegistro = new RegistroAlan({ ...datosBase, leadId: "" });
-    } else if (kommoId === "marygobert2026") {
-      nuevoRegistro = new RegistroAlanUru({ ...datosBase, leadId: "" });
-    } else if (kommoId === "urbanjadeok") {
-      nuevoRegistro = new RegistroRochy({ ...datosBase, leadId: "" });
-    } else if (kommoId === "neonvip") {
-      nuevoRegistro = new RegistroNeon(datosBase);
-    } else if (kommoId === "kommo202513") {
-      nuevoRegistro = new RegistroDobleAs(datosBase);
-    } else if (kommoId === "conline") {
-      nuevoRegistro = new RegistroJoker(datosBase);
-    } else if (["woncoinbots2", "publicidadwoncoin", "publicidadgamble", "publicidadlacaja", "publicidadvegas"].includes(kommoId)) {
-      nuevoRegistro = new RegistroCash({ ...datosBase, leadId: "" });
-    } else if (kommoId === "azlpublic6") {
-      nuevoRegistro = new RegistroAzar({ ...datosBase, leadId: "" });
-    }
-
-    await nuevoRegistro.save();
-
-    console.log("✅ Registro guardado con éxito:", id, "para", kommoId);
-    return res.status(201).json({ mensaje: "Datos guardados con éxito" });
+    console.log(`✅ Datos procesados: ID ${id} para ${kommoId}`);
+    return res.status(201).json({ mensaje: "Datos procesados correctamente" });
 
   } catch (err) {
-    console.error("❌ Error en /guardar:", err);
-    return res.status(500).json({ error: "Error interno al guardar los datos" });
+    console.error("❌ Error crítico en /guardar:", err);
+    return res.status(500).json({ error: "Error interno" });
   }
 });
 

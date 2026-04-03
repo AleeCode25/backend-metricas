@@ -66,6 +66,7 @@ app.post("/guardar", async (req, res) => {
     // 4. Mapeo de Modelos
     const modelos = {
       "opendrust090": RegistroAlan,
+      "portodoeste2026": RegistroAlan,
       "marygobert2026": RegistroAlanUru,
       "urbanjadeok": RegistroRochy,
       "neonvip": RegistroNeon,
@@ -89,7 +90,7 @@ app.post("/guardar", async (req, res) => {
     const datosBase = { id, token, pixel, ip: ipFinal, fbclid, mensaje };
     
     // Añadir leadId vacío si el modelo lo requiere (basado en tu lógica anterior)
-    const requiereLeadId = ["opendrust090", "marygobert2026", "urbanjadeok", "woncoinbots2", "publicidadwoncoin", "publicidadgamble", "publicidadlacaja", "publicidadvegas", "azlpublic6"].includes(kommoId);
+    const requiereLeadId = ["opendrust090", "portodoeste2026", "marygobert2026", "urbanjadeok", "woncoinbots2", "publicidadwoncoin", "publicidadgamble", "publicidadlacaja", "publicidadvegas", "azlpublic6"].includes(kommoId);
     
     if (requiereLeadId) {
       datosBase.leadId = "";
@@ -153,7 +154,7 @@ app.post("/verificacion", async (req, res) => {
       let Modelo;
       if (kommoId === "opendrust090" && kommoIddoble === "kommo202513") {
         Modelo = RegistroDobleAs;
-      } else if (kommoId === "opendrust090") {
+      } else if (["opendrust090", "portodoeste2026"].includes(kommoId)) {
         Modelo = RegistroAlan;
       } else if (kommoId === "marygobert2026") {
         Modelo = RegistroAlanUru;
@@ -203,7 +204,7 @@ app.post("/verificacion", async (req, res) => {
             const fbp = cookies._fbp || `fb.1.${Math.floor(Date.now() / 1000)}.${Math.floor(1000000000 + Math.random() * 9000000000)}`;
             const event_id = `lead_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
 
-            if (kommoId === "opendrust090" || kommoId === "woncoinbots2" || kommoId === "publicidadwoncoin" || kommoId === "publicidadgamble" || kommoId === "publicidadlacaja" || kommoId === "publicidadvegas" || kommoId === "marygobert2026" || kommoId === "azlpublic6" || kommoId === "urbanjadeok") {
+            if (["opendrust090", "portodoeste2026" , "woncoinbots2", "publicidadwoncoin", "publicidadgamble", "publicidadlacaja", "publicidadvegas", "marygobert2026", "urbanjadeok", "azlpublic6"].includes(kommoId)) {
               console.log("aca entro uno que se le crea el leadId")
               registro.leadId = leadId.toString();
               await registro.save();
@@ -211,7 +212,7 @@ app.post("/verificacion", async (req, res) => {
               console.log("Registro guardado con nuevo leadId:", registro.leadId);
             }
 
-            if (kommoId === "publicidadwoncoin" || kommoId === "azlpublic6" || kommoId === "opendrust090") {
+            if (["opendrust090", "portodoeste2026" , "azlpublic6", "publicidadwoncoin"].includes(kommoId)) {
               return console.log(`${kommoId} es Purchase no se pixelea como LeadCorrectoJoker`);
             }
 
@@ -357,7 +358,7 @@ app.post("/buy", async (req, res) => {
       Modelo = RegistroCash;
     } else if (kommoId === "azlpublic6") {
       Modelo = RegistroAzar;
-    } else if ( kommoId === "opendrust090") {
+    } else if (["opendrust090", "portodoeste2026"].includes(kommoId)) {
       Modelo = RegistroAlan;
     } else {
       return res.status(400).json({ error: "ID de Kommo no reconocido" });
@@ -495,9 +496,9 @@ app.post("/vip", async (req, res) => {
 
     let Modelo;
 
-    if (kommoId === "opendrust090") {
+    if (["opendrust090", "portodoeste2026"].includes(kommoId)) {
       Modelo = RegistroAlan;
-    } else if (kommoId === "woncoinbots2" || kommoId === "publicidadwoncoin" || kommoId === "publicidadgamble" || kommoId === "publicidadlacaja" || kommoId === "publicidadvegas") {
+    } else if (["woncoinbots2", "publicidadwoncoin", "publicidadgamble", "publicidadlacaja", "publicidadvegas"].includes(kommoId)) {
       Modelo = RegistroCash;
     } else if (kommoId === "marygobert2026") {
       Modelo = RegistroAlanUru;
@@ -532,7 +533,7 @@ app.post("/vip", async (req, res) => {
           const event_id = `lead_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
 
 
-          if ((lead.price >= 2000 && kommoId === "opendrust090") || (lead.price >= 2000 && kommoId === "woncoinbots2") || (lead.price >= 2000 && kommoId === "publicidadvegas") || (lead.price >= 2000 && kommoId === "publicidadlacaja") || (lead.price >= 2000 && kommoId === "publicidadgamble") || (lead.price >= 2000 && kommoId === "publicidadwoncoin") || (lead.price >= 2000 && kommoId === "azlpublic6") || (lead.price >= 2000 && kommoId === "urbanjadeok")) {
+          if ((lead.price >= 2000 && kommoId === "opendrust090") || (lead.price >= 2000 && kommoId === "portodoeste2026") || (lead.price >= 2000 && kommoId === "woncoinbots2") || (lead.price >= 2000 && kommoId === "publicidadvegas") || (lead.price >= 2000 && kommoId === "publicidadlacaja") || (lead.price >= 2000 && kommoId === "publicidadgamble") || (lead.price >= 2000 && kommoId === "publicidadwoncoin") || (lead.price >= 2000 && kommoId === "azlpublic6") || (lead.price >= 2000 && kommoId === "urbanjadeok")) {
 
             if (lead.price >= 50000) {
               console.log("El lead califica como Mega VIP, procediendo con el pixel Mega Vip.");

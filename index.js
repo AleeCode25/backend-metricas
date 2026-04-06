@@ -51,7 +51,7 @@ app.post("/guardar", async (req, res) => {
 
     // 1. Limpieza de ID para publicidadwoncoin
     if (kommoId === "publicidadwoncoin" && id) {
-      id = id.replace(/\D/g, ""); 
+      id = id.replace(/\D/g, "");
     }
 
     // 2. Verificación de campos esenciales
@@ -88,17 +88,17 @@ app.post("/guardar", async (req, res) => {
     // 5. UPSERT: Si existe lo actualiza, si no, lo crea. 
     // Esto evita el error 409 y la pérdida de datos por reintentos.
     const datosBase = { id, token, pixel, ip: ipFinal, fbclid, mensaje };
-    
+
     // Añadir leadId vacío si el modelo lo requiere (basado en tu lógica anterior)
     const requiereLeadId = ["opendrust090", "portodoeste2026", "marygobert2026", "urbanjadeok", "woncoinbots2", "publicidadwoncoin", "publicidadgamble", "publicidadlacaja", "publicidadvegas", "azlpublic6"].includes(kommoId);
-    
+
     if (requiereLeadId) {
       datosBase.leadId = "";
     }
 
     await ModeloSeleccionado.findOneAndUpdate(
-      { id: id }, 
-      datosBase, 
+      { id: id },
+      datosBase,
       { upsert: true, new: true }
     );
 
@@ -204,7 +204,7 @@ app.post("/verificacion", async (req, res) => {
             const fbp = cookies._fbp || `fb.1.${Math.floor(Date.now() / 1000)}.${Math.floor(1000000000 + Math.random() * 9000000000)}`;
             const event_id = `lead_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
 
-            if (["opendrust090", "portodoeste2026" , "woncoinbots2", "publicidadwoncoin", "publicidadgamble", "publicidadlacaja", "publicidadvegas", "marygobert2026", "urbanjadeok", "azlpublic6"].includes(kommoId)) {
+            if (["opendrust090", "portodoeste2026", "woncoinbots2", "publicidadwoncoin", "publicidadgamble", "publicidadlacaja", "publicidadvegas", "marygobert2026", "urbanjadeok", "azlpublic6"].includes(kommoId)) {
               console.log("aca entro uno que se le crea el leadId")
               registro.leadId = leadId.toString();
               await registro.save();
@@ -212,7 +212,7 @@ app.post("/verificacion", async (req, res) => {
               console.log("Registro guardado con nuevo leadId:", registro.leadId);
             }
 
-            if (["opendrust090", "portodoeste2026" , "azlpublic6", "publicidadwoncoin"].includes(kommoId)) {
+            if (["opendrust090", "portodoeste2026", "azlpublic6", "publicidadwoncoin"].includes(kommoId)) {
               return console.log(`${kommoId} es Purchase no se pixelea como LeadCorrectoJoker`);
             }
 
@@ -255,6 +255,214 @@ app.post("/verificacion", async (req, res) => {
             );
 
             console.log("📡 Pixel ejecutado con éxito:", pixelResponse.data);
+            return res.status(200).json({
+              mensaje: "Verificación completada exitosamente",
+              estado: "verificado"
+            });
+
+          } catch (error) {
+            console.error("❌ Error al ejecutar el pixel:", error.response?.data || error.message);
+
+            // Actualizar el registro con el error
+            registro.isVerified = false;
+            registro.verificationStatus = 'fallido';
+            registro.verificationError = {
+              tipo: 'pixel_error',
+              mensaje: error.response?.data?.error?.message || error.message,
+              timestamp: new Date()
+            };
+            await registro.save();
+
+            if (error.response) {
+              console.error("Estado del error:", error.response.status);
+              console.error("Encabezados del error:", error.response.headers);
+              console.error("Datos del error:", error.response.data);
+            } else if (error.request) {
+              console.error("No se recibió respuesta del servidor:", error.request);
+            } else {
+              console.error("Error desconocido:", error.message);
+            }
+
+            return res.status(500).json({
+              error: "Error al ejecutar el pixel",
+              detalles: registro.verificationError
+            });
+          }
+        } else {
+          console.log("❌ No se encontró un registro con ese ID");
+          return res.status(404).json({
+            error: "Registro no encontrado",
+            detalles: {
+              tipo: 'registro_no_encontrado',
+              mensaje: `No se encontró un registro con el ID ${idExtraido}`,
+              timestamp: new Date()
+            }
+          });
+        }
+      } catch (error) {
+        console.error("Error al buscar o actualizar el registro:", error);
+        return res.status(500).json({
+          error: "Error interno",
+          detalles: {
+            tipo: 'error_interno',
+            mensaje: error.message,
+            timestamp: new Date()
+          }
+        });
+      }
+    } else {
+      console.log("⚠️ No se pudo extraer un ID del mensaje");
+      return res.status(400).json({
+        error: "ID no encontrado",
+        detalles: {
+          tipo: 'id_no_encontrado',
+          mensaje: "No se pudo extraer un ID válido del mensaje",
+          timestamp: new Date()
+        }
+      });
+    }
+  }
+
+  return res.status(400).json({
+    error: "Contacto no encontrado",
+    detalles: {
+      tipo: 'contacto_no_encontrado',
+      mensaje: "No se pudo obtener la información del contacto",
+      timestamp: new Date()
+    }
+  });
+});
+
+app.post("/lead", async (req, res) => {
+  const body = req.body;
+  const { kommoId, token, kommoIddoble } = req.query;
+
+  console.log("🐛 DEBUG: kommoId recibido:", kommoId);
+  console.log(JSON.stringify(body, null, 2), "← este es lo que devuelve el body");
+
+  const leadId = req.body?.leads?.add?.[0]?.id;
+
+  if (!leadId) {
+    return res.status(400).json({ error: "Lead ID no encontrado" });
+  }
+
+  const contacto = await obtenerContactoDesdeLead(leadId, kommoId, token);
+
+  if (contacto) {
+    const leadResponse = await axios.get(`https://${kommoId}.kommo.com/api/v4/leads/${leadId}?with=custom_fields_values`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const lead = leadResponse.data;
+
+    let campoMensaje = lead.custom_fields_values?.find(field => field.field_name === "mensajeenviar");
+    let mensaje = campoMensaje?.values?.[0]?.value;
+
+    console.log("📝 Mensaje guardado en el lead:", mensaje);
+
+    // --- CORRECCIÓN AQUÍ ---
+    // Primero extraemos lo que haya entre corchetes [] o el número largo
+    let idExtraido = mensaje?.match(/\[(.*?)\]/)?.[1] || mensaje?.match(/\d{13,}/)?.[0];
+
+    // Si es publicidadwoncoin, limpiamos el ID para que coincida con lo que guardamos
+    let idFinalParaBusqueda = idExtraido;
+    if (kommoId === "publicidadwoncoin" && idExtraido) {
+      idFinalParaBusqueda = idExtraido.replace(/\D/g, "");
+    }
+
+    console.log("🧾 ID original extraído:", idExtraido);
+    console.log("🔍 ID final usado para buscar en BD:", idFinalParaBusqueda);
+
+    if (idFinalParaBusqueda) {
+      let Modelo;
+      if (kommoId === "opendrust090" && kommoIddoble === "kommo202513") {
+        Modelo = RegistroDobleAs;
+      } else if (["opendrust090", "portodoeste2026"].includes(kommoId)) {
+        Modelo = RegistroAlan;
+      } else if (kommoId === "marygobert2026") {
+        Modelo = RegistroAlanUru;
+      } else if (kommoId === "urbanjadeok") {
+        Modelo = RegistroRochy;
+      } else if (kommoId === "neonvip") {
+        Modelo = RegistroNeon;
+      } else if (kommoId === "kommo202513") {
+        Modelo = RegistroDobleAs;
+      } else if (kommoId === "conline") {
+        Modelo = RegistroJoker;
+      } else if (["woncoinbots2", "publicidadwoncoin", "publicidadgamble", "publicidadlacaja", "publicidadvegas"].includes(kommoId)) {
+        Modelo = RegistroCash;
+      } else if (kommoId === "azlpublic6") {
+        Modelo = RegistroAzar;
+      }
+
+      try {
+        // Buscamos usando el ID ya limpio
+        let registro = await Modelo.findOne({ id: idFinalParaBusqueda });
+
+        if (registro) {
+          console.log("✅ Registro encontrado en BD:", registro.id);
+          console.log("✅ Registro encontrado:", registro);
+
+          if (registro.isVerified) {
+            return console.log("Registro ya pixeleado")
+          }
+
+          // Obtener el número de WhatsApp del contacto
+          const whatsappNumber = contacto.custom_fields_values?.find(field =>
+            field.field_code === "PHONE" || field.field_name?.toLowerCase().includes("whatsapp")
+          )?.values?.[0]?.value;
+
+          if (whatsappNumber) {
+            registro.whatsappNumber = whatsappNumber;
+            console.log("📱 Número de WhatsApp guardado:", whatsappNumber);
+          }
+          // Intentamos verificar el registro
+          try {
+
+            if (["publicidadwoncoin"].includes(kommoId)) {
+              console.log("aca entro uno que se le crea el leadId")
+              registro.leadId = leadId.toString();
+              await registro.save();
+
+              console.log("Registro guardado con nuevo leadId:", registro.leadId);
+            }
+            registro.isVerified = true;
+            registro.verificationStatus = 'verificado';
+            await registro.save();
+
+            const crypto = require("crypto");
+
+            //email hasheado para Facebook, debe ser lowercase y sin espacios antes del hash
+            const hashedEmail = registro.email
+              ? crypto.createHash("sha256").update(registro.email.trim().toLowerCase()).digest("hex")
+              : undefined;
+
+            const event_id = `lead_${leadId}_${Date.now()}`;
+            const pixelEndpointUrl = `https://graph.facebook.com/v18.0/${registro.pixel}/events?access_token=${registro.token}`;
+
+            const eventData = {
+              event_name: "Lead",
+              event_id: event_id,
+              event_time: Math.floor(Date.now() / 1000),
+              action_source: "website",
+              event_source_url: `https://${kommoId}.kommo.com/`,
+              user_data: {
+                client_ip_address: registro.ip,
+                client_user_agent: req.headers["user-agent"],
+                fbc: registro.fbclid ? `fb.1.${Math.floor(Date.now() / 1000)}.${registro.fbclid}` : undefined,
+                fbp: registro.fbp || `fb.1.${Math.floor(Date.now() / 1000)}.${Math.floor(1000000000 + Math.random() * 9000000000)}`,
+                em: hashedEmail,
+              },
+            };
+
+            console.log("Datos del evento Clientes Potenciales a enviar:", JSON.stringify(eventData, null, 2));
+
+            const pixelResponse = await axios.post(
+              pixelEndpointUrl,
+              { data: [eventData] }, // Estructura correcta requerida por FB
+              { headers: { "Content-Type": "application/json" } }
+            );
+
+            console.log("📡 Pixel Clientes Potenciales ejecutado con éxito:", pixelResponse.data);
             return res.status(200).json({
               mensaje: "Verificación completada exitosamente",
               estado: "verificado"
@@ -380,10 +588,10 @@ app.post("/buy", async (req, res) => {
 
           // --- MEJORA: Normalización de datos para Facebook ---
           const crypto = require("crypto");
-          
+
           // El email DEBE ser lowercase y sin espacios antes del hash
-          const hashedEmail = registro.email 
-            ? crypto.createHash("sha256").update(registro.email.trim().toLowerCase()).digest("hex") 
+          const hashedEmail = registro.email
+            ? crypto.createHash("sha256").update(registro.email.trim().toLowerCase()).digest("hex")
             : undefined;
 
           // Aseguramos que el valor sea un número (float)

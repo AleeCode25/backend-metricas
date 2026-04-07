@@ -418,16 +418,13 @@ app.post("/lead", async (req, res) => {
           // Intentamos verificar el registro
           try {
 
-            if (["publicidadwoncoin"].includes(kommoId)) {
+            if (["opendrust090", "portodoeste2026", "woncoinbots2", "publicidadwoncoin", "publicidadgamble", "publicidadlacaja", "publicidadvegas", "marygobert2026", "urbanjadeok", "azlpublic6"].includes(kommoId)) {
               console.log("aca entro uno que se le crea el leadId")
               registro.leadId = leadId.toString();
               await registro.save();
 
               console.log("Registro guardado con nuevo leadId:", registro.leadId);
             }
-            registro.isVerified = true;
-            registro.verificationStatus = 'verificado';
-            await registro.save();
 
             const crypto = require("crypto");
 

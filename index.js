@@ -1848,6 +1848,44 @@ app.post("/saldo", async (req, res) => {
   }
 });
 
+app.post('/hg-cash', (req, res) => {
+  const payload = req.body;
+
+  console.log("Movimiento recibido:", payload);
+
+  try {
+      const {
+          id,
+          amount,
+          direction,
+          status,
+          type,
+          coelsaCode,
+          fromName,
+          toName,
+          date,
+          accountId
+      } = payload;
+
+      console.log(`ID: ${id}`);
+      console.log(`Amount: ${amount}`);
+      console.log(`Direction: ${direction}`);
+      console.log(`Status: ${status}`);
+      console.log(`From: ${fromName}`);
+      console.log(`To: ${toName}`);
+      console.log(`Date: ${date}`);
+      console.log(`Account ID: ${accountId}`);
+      console.log(`Type: ${type}`);
+      console.log(`Coelsa Code: ${coelsaCode}`);
+
+      res.status(200).send('Webhook recibido correctamente');
+      
+  } catch (error) {
+      console.error("Error procesando el webhook:", error);
+      res.status(500).send('Error interno');
+  }
+});
+
 function obtenerMensajeAlAzar(arrayDeMensajes) {
   const indiceAleatorio = Math.floor(Math.random() * arrayDeMensajes.length);
   return arrayDeMensajes[indiceAleatorio];

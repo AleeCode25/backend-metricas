@@ -9,6 +9,7 @@ const RegistroDobleAs = require("./models/RegistroDobleAs");
 const RegistroJoker = require("./models/RegistroJoker");
 const RegistroCash = require("./models/RegistroCash");
 const RegistroAzar = require("./models/RegistroAzar");
+const TransferenciaHg = require("./models/TransferenciaHg");
 const axios = require('axios');
 const cookieParser = require("cookie-parser");
 const net = require('net'); // Requerido para validar IP correctamente
@@ -1848,40 +1849,48 @@ app.post("/saldo", async (req, res) => {
   }
 });
 
-app.post('/hg-cash', (req, res) => {
+app.post('/hg-cash', async (req, res) => { // IMPORTANTE: Agregamos 'async'
   const payload = req.body;
 
-  console.log("Movimiento recibido:", payload);
+  console.log("Movimiento recibido desde HG Cash:", payload.id);
 
   try {
       const {
           id,
           amount,
           direction,
-          status,
           type,
           coelsaCode,
           fromName,
-          toName,
-          date,
-          accountId
+          fromCUIT,
+          date
       } = payload;
 
-      console.log(`ID: ${id}`);
-      console.log(`Amount: ${amount}`);
-      console.log(`Direction: ${direction}`);
-      console.log(`Status: ${status}`);
-      console.log(`From: ${fromName}`);
-      console.log(`To: ${toName}`);
-      console.log(`Date: ${date}`);
-      console.log(`Account ID: ${accountId}`);
-      console.log(`Type: ${type}`);
-      console.log(`Coelsa Code: ${coelsaCode}`);
+      if (direction === 'Inbound' || type === 'inbound') {
+          console.log(`⬇️ Procesando Ingreso: $${amount} de ${fromName}`);
 
-      res.status(200).send('Webhook recibido correctamente');
+          await TransferenciaHg.findOneAndUpdate(
+              { transaccionId: id }, // Busca por el ID único de la transferencia
+              {
+                  transaccionId: id,
+                  monto: parseFloat(amount),
+                  coelsaCode: coelsaCode,
+                  remitente: fromName,
+                  cuit: fromCUIT,
+                  fechaIngreso: new Date(date)
+              },
+              { upsert: true, new: true } // Lo crea si no existe
+          );
+
+          console.log(`✅ Transferencia de ${fromName} guardada en BD correctamente como PENDIENTE.`);
+      } else {
+          console.log(`⏭️ Movimiento ignorado (es una salida): ${direction}`);
+      }
+
+      res.status(200).send('Webhook recibido y procesado');
       
   } catch (error) {
-      console.error("Error procesando el webhook:", error);
+      console.error("❌ Error guardando el webhook de HG Cash en BD:", error);
       res.status(500).send('Error interno');
   }
 });

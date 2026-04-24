@@ -1853,6 +1853,7 @@ app.post('/hg-cash', async (req, res) => { // IMPORTANTE: Agregamos 'async'
   const payload = req.body;
 
   console.log("Movimiento recibido desde HG Cash:", payload.id);
+  console.log ("Detalles del movimiento:", JSON.stringify(payload, null, 2));
 
   try {
       const {

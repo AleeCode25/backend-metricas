@@ -365,7 +365,7 @@ app.post("/lead", async (req, res) => {
 
     // Si es publicidadkommo, limpiamos el ID para que coincida con lo que guardamos
     let idFinalParaBusqueda = idExtraido;
-    if (kommoId === "publicidadkommo" && idExtraido) {
+    if (["woncoinbots2", "publicidadkommo", "publicidadgamble", "publicidadlacaja", "publicidadvegas"].includes(kommoId) && idExtraido ) {
       idFinalParaBusqueda = idExtraido.replace(/\D/g, "");
     }
 
@@ -559,7 +559,7 @@ app.post("/buy", async (req, res) => {
     const lead = leadResponse.data;
     let Modelo;
 
-    if (kommoId === "publicidadkommo") {
+    if (["woncoinbots2", "publicidadkommo", "publicidadgamble", "publicidadlacaja", "publicidadvegas"].includes(kommoId)) {
       Modelo = RegistroCash;
     } else if (kommoId === "azlpublic6") {
       Modelo = RegistroAzar;

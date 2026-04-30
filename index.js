@@ -1898,11 +1898,7 @@ app.post('/hg-cash', async (req, res) => { // IMPORTANTE: Agregamos 'async'
 
 app.post("/match", async (req, res) => {
   try {
-    // 1. OBTENER DATOS INICIALES DEL WEBHOOK
-    console.log("Webhook de Kommo recibido en /match-transferencia:", JSON.stringify(req.body, null, 2));
     const { kommoId, token } = req.query;
-    
-    // Kommo puede mandarlo anidado o plano dependiendo de cómo se envíe, abarcamos ambas opciones
     const leadId = req.body?.leads?.add?.[0]?.id || 
                    req.body?.leads?.update?.[0]?.id || 
                    req.body['leads[add][0][id]'] || 
@@ -1911,16 +1907,11 @@ app.post("/match", async (req, res) => {
     console.log(`➡️ Iniciando Webhook de Kommo para Lead ID: ${leadId}`);
 
     if (!leadId || !kommoId || !token) {
-      console.error("❌ Faltan datos esenciales: leadId, kommoId o token.");
       return res.status(400).json({ error: "Faltan parámetros." });
     }
 
-    // 2. BUSCAMOS EL LEAD ENTERO EN KOMMO PARA SACAR LOS CAMPOS PERSONALIZADOS
-    // Usamos axios en lugar de fetch para mantener la coherencia con tu backend
     const leadResponse = await axios.get(`https://${kommoId}.kommo.com/api/v4/leads/${leadId}?with=custom_fields_values`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
+      headers: { 'Authorization': `Bearer ${token}` }
     });
 
     const lead = leadResponse.data;
@@ -1930,56 +1921,88 @@ app.post("/match", async (req, res) => {
 
     if (lead.custom_fields_values) {
       const coelsaField = lead.custom_fields_values.find(f => f.field_name === 'COELSA');
-      if (coelsaField && coelsaField.values && coelsaField.values.length > 0) {
-        coelsa = coelsaField.values[0].value.trim();
-      }
+      if (coelsaField && coelsaField.values && coelsaField.values.length > 0) coelsa = coelsaField.values[0].value.trim();
 
       const cuilField = lead.custom_fields_values.find(f => f.field_name === 'CUIL');
-      if (cuilField && cuilField.values && cuilField.values.length > 0) {
-        cuil = cuilField.values[0].value.trim();
-      }
+      if (cuilField && cuilField.values && cuilField.values.length > 0) cuil = cuilField.values[0].value.trim();
     }
-
-    console.log(`🔍 Datos extraídos -> Monto: ${monto} | COELSA: ${coelsa} | CUIL: ${cuil}`);
     
-    if (!monto || !cuil) {
-      console.log("⚠️ Faltan datos (Monto o CUIL) en el lead. No se puede comparar.");
+    if (!monto || (!cuil && !coelsa)) {
       return res.status(200).json({ message: "Datos incompletos en el lead." }); 
     }
 
-    // 3. BUSCAR COINCIDENCIA EN LA BASE DE DATOS
-    const cargaPendiente = await TransferenciaHg.findOne({
-      estado: "PENDIENTE",
-      monto: monto,
-      cuit: { $regex: new RegExp(`^${cuil}$`, 'i') }
-    });
+    let cargaPendiente = null;
 
-    if (cargaPendiente) {
-      console.log(`✅ ¡MATCH ENCONTRADO! Aprobando transferencia ID: ${cargaPendiente._id}`);
-      
-      cargaPendiente.estado = "CARGADA";
-      cargaPendiente.fechaCarga = new Date();
-      await cargaPendiente.save();
-
-      return res.status(200).json({ 
-        success: true, 
-        message: "Carga encontrada y marcada como CARGADA exitosamente",
-        idTransferencia: cargaPendiente._id 
-      });
-
-    } else {
-      console.log("❌ No se encontró ninguna carga PENDIENTE que coincida con esos 3 datos.");
-      return res.status(200).json({ 
-        success: false, 
-        message: "No se encontró coincidencia en pendientes." 
+    // Buscar por CUIL
+    if (cuil) {
+      cargaPendiente = await TransferenciaHg.findOne({
+        estado: "PENDIENTE",
+        monto: monto,
+        cuit: { $regex: new RegExp(`^${cuil}$`, 'i') }
       });
     }
 
+    // Buscar por COELSA
+    if (!cargaPendiente && coelsa) {
+      cargaPendiente = await TransferenciaHg.findOne({
+        estado: "PENDIENTE",
+        monto: monto,
+        coelsaCode: { $regex: new RegExp(`^${coelsa}$`, 'i') } 
+      });
+    }
+
+    // 4. RESOLUCIÓN DE LA BÚSQUEDA Y LLAMADA A NEXT.JS
+    if (cargaPendiente) {
+      console.log(`✅ ¡MATCH ENCONTRADO! ID: ${cargaPendiente._id}. Iniciando llamada al panel Next.js...`);
+      
+      const safeUsername = lead.name ? lead.name.trim() : null;
+
+      if (!safeUsername) {
+        console.error("❌ La transferencia no tiene un 'usuarioCasino' guardado para hacer la autocarga.");
+        return res.status(200).json({ message: "Match encontrado, pero falta el usuario de casino." });
+      }
+
+      try {
+        // Le pegamos al endpoint de Next.js pasándole la clave secreta
+        const panelResponse = await axios.post(`https://paneldecargas.site/api/transferencias/${cargaPendiente._id}/cargar`, {
+          usuarioCasino: safeUsername,
+          conBono: false,
+          montoBono: 0,
+          apiSecret: "ReySanto2026_AutoCargaSegura" // <-- DEBE SER EXACTAMENTE LA MISMA CLAVE
+        });
+
+        console.log(`✅ Autocarga exitosa mediante el panel Next.js.`);
+        
+        // OJO: Next.js ya cambia el estado a "CARGADA" en la base de datos, 
+        // así que ya NO necesitamos hacer cargaPendiente.save() aquí en Express.
+
+        return res.status(200).json({ 
+          success: true, 
+          message: "Match exitoso y saldo cargado automáticamente a través de Next.js.",
+          idTransferencia: cargaPendiente._id 
+        });
+
+      } catch (nextError) {
+        // Si Next.js o Zeus rebotan la carga
+        const errorDetail = nextError.response?.data || nextError.message;
+        console.error(`❌ El panel de Next.js rechazó la autocarga:`, errorDetail);
+        
+        return res.status(200).json({ 
+          success: false, 
+          message: "Match encontrado, pero falló la carga en el panel.",
+          detalles: errorDetail
+        });
+      }
+
+    } else {
+      console.log("❌ No se encontró coincidencia en pendientes.");
+      return res.status(200).json({ success: false, message: "No se encontró coincidencia en pendientes." });
+    }
+
   } catch (error) {
-    // Si el error viene de axios, imprimimos error.response.data para más detalle
     const errorMsg = error.response?.data || error.message;
     console.error("🔥 Error crítico en el Webhook:", errorMsg);
-    return res.status(500).json({ error: "Error interno del servidor", detalles: errorMsg });
+    return res.status(500).json({ error: "Error interno", detalles: errorMsg });
   }
 });
 

@@ -1896,9 +1896,10 @@ app.post('/hg-cash', async (req, res) => { // IMPORTANTE: Agregamos 'async'
   }
 });
 
-app.post("/match-transferencia", async (req, res) => {
+app.post("/match", async (req, res) => {
   try {
     // 1. OBTENER DATOS INICIALES DEL WEBHOOK
+    console.log("Webhook de Kommo recibido en /match-transferencia:", JSON.stringify(req.body, null, 2));
     const { kommoId, token } = req.query;
     
     // Kommo puede mandarlo anidado o plano dependiendo de cómo se envíe, abarcamos ambas opciones

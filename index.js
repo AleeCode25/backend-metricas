@@ -50,7 +50,7 @@ app.post("/guardar", async (req, res) => {
     let { id, token, pixel, ip, fbclid, mensaje } = req.body;
     const { kommoId } = req.query;
 
-    if (["woncoinbots2", "publicidadkommo", "publicidadgamble", "publicidadlacaja", "publicidadvegas"].includes(kommoId) && id) {
+    if (["woncoinbots2", "publicidadkommo", "publicidadgamble", "publicidadlacaja", "publicidadvegas", "christofher06"].includes(kommoId) && id) {
       id = id.replace(/\D/g, "");
     }
 
@@ -77,7 +77,8 @@ app.post("/guardar", async (req, res) => {
       "publicidadkommo": RegistroCash,
       "publicidadgamble": RegistroCash,
       "publicidadlacaja": RegistroCash,
-      "publicidadvegas": RegistroCash
+      "publicidadvegas": RegistroCash,
+      "christofher06": RegistroCash
     };
 
     const ModeloSeleccionado = modelos[kommoId];
@@ -365,7 +366,7 @@ app.post("/lead", async (req, res) => {
 
     // Si es publicidadkommo, limpiamos el ID para que coincida con lo que guardamos
     let idFinalParaBusqueda = idExtraido;
-    if (["woncoinbots2", "publicidadkommo", "publicidadgamble", "publicidadlacaja", "publicidadvegas"].includes(kommoId) && idExtraido ) {
+    if (["woncoinbots2", "publicidadkommo", "publicidadgamble", "publicidadlacaja", "publicidadvegas", "christofher06"].includes(kommoId) && idExtraido ) {
       idFinalParaBusqueda = idExtraido.replace(/\D/g, "");
     }
 
@@ -388,7 +389,7 @@ app.post("/lead", async (req, res) => {
         Modelo = RegistroDobleAs;
       } else if (kommoId === "conline") {
         Modelo = RegistroJoker;
-      } else if (["woncoinbots2", "publicidadkommo", "publicidadgamble", "publicidadlacaja", "publicidadvegas"].includes(kommoId)) {
+      } else if (["woncoinbots2", "publicidadkommo", "publicidadgamble", "publicidadlacaja", "publicidadvegas", "christofher06"].includes(kommoId)) {
         Modelo = RegistroCash;
       } else if (kommoId === "azlpublic6") {
         Modelo = RegistroAzar;
@@ -418,7 +419,7 @@ app.post("/lead", async (req, res) => {
           // Intentamos verificar el registro
           try {
 
-            if (["opendrust090", "portodoeste2026", "woncoinbots2", "publicidadkommo", "publicidadgamble", "publicidadlacaja", "publicidadvegas", "marygobert2026", "urbanjadeok", "azlpublic6"].includes(kommoId)) {
+            if (["opendrust090", "portodoeste2026", "woncoinbots2", "publicidadkommo", "publicidadgamble", "publicidadlacaja", "publicidadvegas", "christofher06" , "marygobert2026", "urbanjadeok", "azlpublic6"].includes(kommoId)) {
               console.log("aca entro uno que se le crea el leadId")
               registro.leadId = leadId.toString();
               await registro.save();
@@ -559,7 +560,7 @@ app.post("/buy", async (req, res) => {
     const lead = leadResponse.data;
     let Modelo;
 
-    if (["woncoinbots2", "publicidadkommo", "publicidadgamble", "publicidadlacaja", "publicidadvegas"].includes(kommoId)) {
+    if (["woncoinbots2", "publicidadkommo", "publicidadgamble", "publicidadlacaja", "publicidadvegas", "christofher06"].includes(kommoId)) {
       Modelo = RegistroCash;
     } else if (kommoId === "azlpublic6") {
       Modelo = RegistroAzar;

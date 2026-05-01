@@ -1917,7 +1917,7 @@ app.post("/match", async (req, res) => {
     } else if (kommoId === "neonvip") {
       MENSAJEENVIAR_FIELD_ID = 1407554;
     } else if (kommoId === "portodoeste2026") {
-      MENSAJEENVIAR_FIELD_ID = 1935098; // <-- REEMPLAZA ESTO CON EL ID REAL PARA PORTO OESTE
+      MENSAJEENVIAR_FIELD_ID = 1689406; // <-- REEMPLAZA ESTO CON EL ID REAL PARA PORTO OESTE
     } else {
       console.warn(`⚠️ Kommo ID ${kommoId} no reconocido
 . No se asignará MENSAJEENVIAR_FIELD_ID, lo que probablemente causará un error al intentar actualizar el lead.`);

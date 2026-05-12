@@ -362,8 +362,6 @@ app.post("/lead", async (req, res) => {
 
     console.log("📝 Mensaje guardado en el lead:", mensaje);
 
-    // --- CORRECCIÓN AQUÍ ---
-    // Primero extraemos lo que haya entre corchetes [] o el número largo
     let idExtraido = mensaje?.match(/\[(.*?)\]/)?.[1] || mensaje?.match(/\d{13,}/)?.[0];
 
     // Si es publicidadkommo, limpiamos el ID para que coincida con lo que guardamos
@@ -572,6 +570,8 @@ app.post("/buy", async (req, res) => {
       Modelo = RegistroAlan;
     } else if (kommoId === "fortunarush23") {
       Modelo = RegistroRush;
+    } else if (kommoId === "urbanjadeok") {
+      Modelo = RegistroRochy;
     } else {
       return res.status(400).json({ error: "ID de Kommo no reconocido" });
     }

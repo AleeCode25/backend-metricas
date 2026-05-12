@@ -9,6 +9,7 @@ const RegistroDobleAs = require("./models/RegistroDobleAs");
 const RegistroJoker = require("./models/RegistroJoker");
 const RegistroCash = require("./models/RegistroCash");
 const RegistroAzar = require("./models/RegistroAzar");
+const RegistroRush = require("./models/RegistroRush");
 const TransferenciaHg = require("./models/TransferenciaHg");
 const axios = require('axios');
 const cookieParser = require("cookie-parser");
@@ -67,6 +68,7 @@ app.post("/guardar", async (req, res) => {
     const modelos = {
       "opendrust090": RegistroAlan,
       "portodoeste2026": RegistroAlan,
+      "fortunarush23": RegistroRush,
       "marygobert2026": RegistroAlanUru,
       "urbanjadeok": RegistroRochy,
       "neonvip": RegistroNeon,
@@ -393,6 +395,8 @@ app.post("/lead", async (req, res) => {
         Modelo = RegistroCash;
       } else if (kommoId === "azlpublic6") {
         Modelo = RegistroAzar;
+      } else if (kommoId === "fortunarush23") {
+        Modelo = RegistroRush;
       }
 
       try {
@@ -416,10 +420,10 @@ app.post("/lead", async (req, res) => {
             registro.whatsappNumber = whatsappNumber;
             console.log("📱 Número de WhatsApp guardado:", whatsappNumber);
           }
-          // Intentamos verificar el registro
+
           try {
 
-            if (["opendrust090", "portodoeste2026", "woncoinbots2", "publicidadkommo", "publicidadgamble", "publicidadlacaja", "publicidadvegas", "christofher06" , "marygobert2026", "urbanjadeok", "azlpublic6"].includes(kommoId)) {
+            if (["opendrust090", "portodoeste2026", "woncoinbots2", "publicidadkommo", "publicidadgamble", "publicidadlacaja", "publicidadvegas", "christofher06" , "marygobert2026", "urbanjadeok", "azlpublic6", "fortunarush23"].includes(kommoId)) {
               console.log("aca entro uno que se le crea el leadId")
               registro.leadId = leadId.toString();
               await registro.save();
@@ -566,6 +570,8 @@ app.post("/buy", async (req, res) => {
       Modelo = RegistroAzar;
     } else if (["opendrust090", "portodoeste2026"].includes(kommoId)) {
       Modelo = RegistroAlan;
+    } else if (kommoId === "fortunarush23") {
+      Modelo = RegistroRush;
     } else {
       return res.status(400).json({ error: "ID de Kommo no reconocido" });
     }

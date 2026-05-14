@@ -14,6 +14,7 @@ const TransferenciaHg = require("./models/TransferenciaHg");
 const axios = require('axios');
 const cookieParser = require("cookie-parser");
 const net = require('net'); // Requerido para validar IP correctamente
+const TransferenciaHgGanamos = require("./models/TransferenciaHgGanamos");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -1879,6 +1880,53 @@ app.post('/hg-cash', async (req, res) => { // IMPORTANTE: Agregamos 'async'
           console.log(`⬇️ Procesando Ingreso: $${amount} de ${fromName}`);
 
           await TransferenciaHg.findOneAndUpdate(
+              { transaccionId: id }, // Busca por el ID único de la transferencia
+              {
+                  transaccionId: id,
+                  monto: parseFloat(amount),
+                  coelsaCode: coelsaCode,
+                  remitente: fromName,
+                  cuit: fromCUIT,
+                  fechaIngreso: new Date(date)
+              },
+              { upsert: true, new: true } // Lo crea si no existe
+          );
+
+          console.log(`✅ Transferencia de ${fromName} guardada en BD correctamente como PENDIENTE.`);
+      } else {
+          console.log(`⏭️ Movimiento ignorado (es una salida): ${direction}`);
+      }
+
+      res.status(200).send('Webhook recibido y procesado');
+      
+  } catch (error) {
+      console.error("❌ Error guardando el webhook de HG Cash en BD:", error);
+      res.status(500).send('Error interno');
+  }
+});
+
+app.post('/hg-cash-ganamos', async (req, res) => { // IMPORTANTE: Agregamos 'async'
+  const payload = req.body;
+
+  console.log("Movimiento recibido desde HG Cash:", payload.id);
+  console.log ("Detalles del movimiento:", JSON.stringify(payload, null, 2));
+
+  try {
+      const {
+          id,
+          amount,
+          direction,
+          type,
+          coelsaCode,
+          fromName,
+          fromCUIT,
+          date
+      } = payload;
+
+      if (direction === 'Inbound' || type === 'inbound') {
+          console.log(`⬇️ Procesando Ingreso: $${amount} de ${fromName}`);
+
+          await TransferenciaHgGanamos.findOneAndUpdate(
               { transaccionId: id }, // Busca por el ID único de la transferencia
               {
                   transaccionId: id,

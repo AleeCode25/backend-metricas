@@ -82,7 +82,8 @@ app.post("/guardar", async (req, res) => {
       "publicidadgamble": RegistroCash,
       "publicidadlacaja": RegistroCash,
       "publicidadvegas": RegistroCash,
-      "christofher06": RegistroCash
+      "christofher06": RegistroCash,
+      "matutepinpin": RegistroCash
     };
 
     const ModeloSeleccionado = modelos[kommoId];
@@ -95,7 +96,7 @@ app.post("/guardar", async (req, res) => {
     const datosBase = { id, token, pixel, ip: ipFinal, fbclid, mensaje };
 
     // Añadir leadId vacío si el modelo lo requiere (basado en tu lógica anterior)
-    const requiereLeadId = ["opendrust090", "portodoeste2026", "marygobert2026", "urbanjadeok", "woncoinbots2", "publicidadkommo", "publicidadgamble", "publicidadlacaja", "publicidadvegas", "azlpublic6"].includes(kommoId);
+    const requiereLeadId = ["opendrust090", "portodoeste2026", "marygobert2026", "urbanjadeok", "woncoinbots2", "publicidadkommo", "publicidadgamble", "publicidadlacaja", "matutepinpin", "publicidadvegas", "azlpublic6"].includes(kommoId);
 
     if (requiereLeadId) {
       datosBase.leadId = "";
@@ -368,7 +369,7 @@ app.post("/lead", async (req, res) => {
 
     // Si es publicidadkommo, limpiamos el ID para que coincida con lo que guardamos
     let idFinalParaBusqueda = idExtraido;
-    if (["woncoinbots2", "publicidadkommo", "publicidadgamble", "publicidadlacaja", "publicidadvegas", "christofher06"].includes(kommoId) && idExtraido ) {
+    if (["woncoinbots2", "publicidadkommo", "publicidadgamble", "publicidadlacaja", "publicidadvegas", "christofher06", "matutepinpin"].includes(kommoId) && idExtraido ) {
       idFinalParaBusqueda = idExtraido.replace(/\D/g, "");
     }
 
@@ -391,7 +392,7 @@ app.post("/lead", async (req, res) => {
         Modelo = RegistroDobleAs;
       } else if (kommoId === "conline") {
         Modelo = RegistroJoker;
-      } else if (["woncoinbots2", "publicidadkommo", "publicidadgamble", "publicidadlacaja", "publicidadvegas", "christofher06"].includes(kommoId)) {
+      } else if (["woncoinbots2", "publicidadkommo", "publicidadgamble", "publicidadlacaja", "publicidadvegas", "christofher06", "matutepinpin"].includes(kommoId)) {
         Modelo = RegistroCash;
       } else if (kommoId === "azlpublic6") {
         Modelo = RegistroAzar;
@@ -423,7 +424,7 @@ app.post("/lead", async (req, res) => {
 
           try {
 
-            if (["opendrust090", "portodoeste2026", "dubaisliders", "woncoinbots2", "publicidadkommo", "publicidadgamble", "publicidadlacaja", "publicidadvegas", "christofher06" , "marygobert2026", "urbanjadeok", "azlpublic6", "fortunarush23"].includes(kommoId)) {
+            if (["opendrust090", "portodoeste2026", "dubaisliders", "woncoinbots2", "publicidadkommo", "publicidadgamble", "publicidadlacaja", "publicidadvegas", "matutepinpin", "christofher06" , "marygobert2026", "urbanjadeok", "azlpublic6", "fortunarush23"].includes(kommoId)) {
               console.log("aca entro uno que se le crea el leadId")
               registro.leadId = leadId.toString();
               await registro.save();
@@ -564,7 +565,7 @@ app.post("/buy", async (req, res) => {
     const lead = leadResponse.data;
     let Modelo;
 
-    if (["woncoinbots2", "publicidadkommo", "publicidadgamble", "publicidadlacaja", "publicidadvegas", "christofher06"].includes(kommoId)) {
+    if (["woncoinbots2", "publicidadkommo", "publicidadgamble", "publicidadlacaja", "publicidadvegas", "christofher06", "matutepinpin"].includes(kommoId)) {
       Modelo = RegistroCash;
     } else if (kommoId === "azlpublic6") {
       Modelo = RegistroAzar;

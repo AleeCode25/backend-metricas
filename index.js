@@ -52,7 +52,7 @@ app.post("/guardar", async (req, res) => {
     let { id, token, pixel, ip, fbclid, mensaje } = req.body;
     const { kommoId } = req.query;
 
-    if (["woncoinbots2", "publicidadkommo", "publicidadgamble", "publicidadlacaja", "publicidadvegas", "christofher06"].includes(kommoId) && id) {
+    if (["woncoinbots2", "publicidadkommo", "publicidadgamble", "publicidadlacaja", "publicidadvegas", "christofher06", "matutepinpin"].includes(kommoId) && id) {
       id = id.replace(/\D/g, "");
     }
 

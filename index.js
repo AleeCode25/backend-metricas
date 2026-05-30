@@ -2443,6 +2443,57 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
+app.post("/api/numeros/agregar", async (req, res) => {
+  try {
+    const { usuario, numero } = req.body;
+
+    if (!usuario || !numero) {
+      return res.status(400).json({ success: false, error: "Faltan campos requeridos." });
+    }
+
+    const usuarioQuery = usuario.toLowerCase().trim();
+
+    // $addToSet es clave porque evita que se agregue el mismo número duplicado si clickean dos veces
+    await UsuarioPanel.updateOne(
+      { usuario: usuarioQuery },
+      { $addToSet: { numeros: numero.trim() } }
+    );
+
+    console.log(`📱 Número +${numero} agregado a la rotación de: ${usuarioQuery}`);
+    return res.status(200).json({ success: true, mensaje: "Número agregado con éxito." });
+
+  } catch (err) {
+    console.error("❌ Error en /api/numeros/agregar:", err);
+    return res.status(500).json({ success: false, error: "Error interno del servidor." });
+  }
+});
+
+// 📤 ENDPOINT: ELIMINAR NÚMERO DEL ARRAY
+app.post("/api/numeros/eliminar", async (req, res) => {
+  try {
+    const { usuario, numero } = req.body;
+
+    if (!usuario || !numero) {
+      return res.status(400).json({ success: false, error: "Faltan campos requeridos." });
+    }
+
+    const usuarioQuery = usuario.toLowerCase().trim();
+
+    // $pull remueve el string exacto del número de adentro del array
+    await UsuarioPanel.updateOne(
+      { usuario: usuarioQuery },
+      { $pull: { numeros: numero.trim() } }
+    );
+
+    console.log(`🗑️ Número +${numero} eliminado de la rotación de: ${usuarioQuery}`);
+    return res.status(200).json({ success: true, mensaje: "Número eliminado con éxito." });
+
+  } catch (err) {
+    console.error("❌ Error en /api/numeros/eliminar:", err);
+    return res.status(500).json({ success: false, error: "Error interno del servidor." });
+  }
+});
+
 function obtenerMensajeAlAzar(arrayDeMensajes) {
   const indiceAleatorio = Math.floor(Math.random() * arrayDeMensajes.length);
   return arrayDeMensajes[indiceAleatorio];

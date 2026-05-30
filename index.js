@@ -15,6 +15,7 @@ const axios = require('axios');
 const cookieParser = require("cookie-parser");
 const net = require('net'); // Requerido para validar IP correctamente
 const TransferenciaHgGanamos = require("./models/TransferenciaHgGanamos");
+const UsuarioPanel = require("./models/UsuarioPanel");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -2334,6 +2335,68 @@ app.post("/matchg", async (req, res) => {
     const errorMsg = error.response?.data || error.message;
     console.error("🔥 Error crítico en el Webhook:", errorMsg);
     return res.status(500).json({ error: "Error interno", detalles: errorMsg });
+  }
+});
+
+// 📞 ENDPOINT PARA LA LANDING: Consumir números por cliente
+app.get("/api/numeros", async (req, res) => {
+  try {
+    const { cliente } = req.query;
+
+    if (!cliente) {
+      return res.status(400).json({ error: "Falta el parámetro cliente" });
+    }
+
+    // Buscamos al usuario en la colección usuariosPanel (en minúsculas por consistencia)
+    const usuarioEncontrado = await UsuarioPanel.findOne({ usuario: cliente.toLowerCase() });
+
+    if (!usuarioEncontrado) {
+      return res.status(404).json({ error: "Cliente no encontrado en el panel" });
+    }
+
+    // Devolvemos la estructura exacta que espera la landing
+    return res.status(200).json({
+      cliente: usuarioEncontrado.usuario,
+      numeros: usuarioEncontrado.numeros
+    });
+
+  } catch (err) {
+    console.error("❌ Error en GET /api/numeros:", err);
+    return res.status(500).json({ error: "Error interno del servidor" });
+  }
+});
+
+// 🖥️ ENDPOINT PARA EL PANEL: Crear o editar usuarios y sus números (Upsert)
+app.post("/api/panel/guardar-cliente", async (req, res) => {
+  try {
+    const { usuario, contrasena, numeros } = req.body;
+
+    if (!usuario || !contrasena || !Array.isArray(numeros)) {
+      return res.status(400).json({ error: "Campos inválidos. 'numeros' debe ser un array." });
+    }
+
+    const usuarioQuery = usuario.toLowerCase().trim();
+
+    // Buscamos y actualizamos, si no existe lo crea (upsert)
+    const usuarioActualizado = await UsuarioPanel.findOneAndUpdate(
+      { usuario: usuarioQuery },
+      { 
+        usuario: usuarioQuery,
+        contrasena, // Nota: Más adelante podrías aplicarle bcrypt para encriptarla si lo requiere tu seguridad
+        numeros 
+      },
+      { upsert: true, new: true }
+    );
+
+    console.log(`💾 Cliente guardado/actualizado en Panel: ${usuarioQuery}`);
+    return res.status(200).json({ 
+      mensaje: "Usuario de panel guardado correctamente", 
+      data: usuarioActualizado 
+    });
+
+  } catch (err) {
+    console.error("❌ Error en /api/panel/guardar-cliente:", err);
+    return res.status(500).json({ error: "Error interno del servidor" });
   }
 });
 

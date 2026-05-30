@@ -2400,6 +2400,51 @@ app.post("/api/panel/guardar-cliente", async (req, res) => {
   }
 });
 
+app.post('/api/login', async (req, res) => {
+  try {
+      const { usuario, password } = req.body; // PHP manda esto por POST
+
+      // 1. Validar campos vacíos
+      if (!usuario || !password) {
+          return res.status(400).json({ 
+              success: false, 
+              message: "Por favor, completá todos los campos." 
+          });
+      }
+
+      // 2. Buscar en la colección 'usuariosPanel' por el usuario (en minúsculas)
+      const user = await UsuarioPanel.findOne({ usuario: usuario.trim().toLowerCase() });
+      if (!user) {
+          return res.status(401).json({ 
+              success: false, 
+              message: "Usuario o contraseña incorrectos." 
+          });
+      }
+
+      // 3. Comparar con 'contrasena' de tu esquema usando bcrypt
+      const match = await bcrypt.compare(password, user.contrasena);
+      if (!match) {
+          return res.status(401).json({ 
+              success: false, 
+              message: "Usuario o contraseña incorrectos." 
+          });
+      }
+
+      // 4. Mandamos respuesta de éxito al panel de PHP
+      return res.status(200).json({
+          success: true,
+          usuario: user.usuario
+      });
+
+  } catch (error) {
+      console.error("Error en el login:", error);
+      return res.status(500).json({ 
+          success: false, 
+          message: "Error interno del servidor." 
+      });
+  }
+});
+
 function obtenerMensajeAlAzar(arrayDeMensajes) {
   const indiceAleatorio = Math.floor(Math.random() * arrayDeMensajes.length);
   return arrayDeMensajes[indiceAleatorio];

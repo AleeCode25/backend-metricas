@@ -10,11 +10,13 @@ const RegistroJoker = require("./models/RegistroJoker");
 const RegistroCash = require("./models/RegistroCash");
 const RegistroAzar = require("./models/RegistroAzar");
 const RegistroRush = require("./models/RegistroRush");
+const RegistroLotus = require("./models/RegistroLotus");
 const TransferenciaHg = require("./models/TransferenciaHg");
 const axios = require('axios');
 const cookieParser = require("cookie-parser");
 const net = require('net'); // Requerido para validar IP correctamente
 const TransferenciaHgGanamos = require("./models/TransferenciaHgGanamos");
+const TransferenciaHgLotus = require("./models/TransferenciaHgLotus");
 const UsuarioPanel = require("./models/UsuarioPanel");
 
 const app = express();
@@ -84,7 +86,8 @@ app.post("/guardar", async (req, res) => {
       "publicidadlacaja": RegistroCash,
       "publicidadvegas": RegistroCash,
       "christofher06": RegistroCash,
-      "matutepinpin": RegistroCash
+      "matutepinpin": RegistroCash,
+      "pablitoochoa233": RegistroLotus,
     };
 
     const ModeloSeleccionado = modelos[kommoId];
@@ -399,6 +402,10 @@ app.post("/lead", async (req, res) => {
         Modelo = RegistroAzar;
       } else if (kommoId === "fortunarush23") {
         Modelo = RegistroRush;
+      } else if (kommoId === "pablitoochoa233") {
+        Modelo = RegistroLotus;
+      } else {
+        return res.status(400).json({ error: "ID de Kommo no reconocido" });
       }
 
       try {
@@ -425,7 +432,7 @@ app.post("/lead", async (req, res) => {
 
           try {
 
-            if (["opendrust090", "portodoeste2026", "dubaisliders", "woncoinbots2", "publicidadkommo", "publicidadgamble", "publicidadlacaja", "publicidadvegas", "matutepinpin", "christofher06" , "marygobert2026", "urbanjadeok", "azlpublic6", "fortunarush23"].includes(kommoId)) {
+            if (["opendrust090", "portodoeste2026", "dubaisliders", "pablitoochoa233" , "woncoinbots2", "publicidadkommo", "publicidadgamble", "publicidadlacaja", "publicidadvegas", "matutepinpin", "christofher06" , "marygobert2026", "urbanjadeok", "azlpublic6", "fortunarush23"].includes(kommoId)) {
               console.log("aca entro uno que se le crea el leadId")
               registro.leadId = leadId.toString();
               await registro.save();
@@ -576,6 +583,8 @@ app.post("/buy", async (req, res) => {
       Modelo = RegistroRush;
     } else if (kommoId === "urbanjadeok") {
       Modelo = RegistroRochy;
+    } else if (kommoId === "pablitoochoa233") {
+      Modelo = RegistroLotus;
     } else {
       return res.status(400).json({ error: "ID de Kommo no reconocido" });
     }
@@ -1954,6 +1963,53 @@ app.post('/hg-cash-ganamos', async (req, res) => { // IMPORTANTE: Agregamos 'asy
   }
 });
 
+app.post('/hg-cash-lotus', async (req, res) => { // IMPORTANTE: Agregamos 'async'
+  const payload = req.body;
+
+  console.log("Movimiento recibido desde HG Cash:", payload.id);
+  console.log ("Detalles del movimiento:", JSON.stringify(payload, null, 2));
+
+  try {
+      const {
+          id,
+          amount,
+          direction,
+          type,
+          coelsaCode,
+          fromName,
+          fromCUIT,
+          date
+      } = payload;
+
+      if (direction === 'Inbound' || type === 'inbound') {
+          console.log(`⬇️ Procesando Ingreso: $${amount} de ${fromName}`);
+
+          await TransferenciaHgLotus.findOneAndUpdate(
+              { transaccionId: id }, // Busca por el ID único de la transferencia
+              {
+                  transaccionId: id,
+                  monto: parseFloat(amount),
+                  coelsaCode: coelsaCode,
+                  remitente: fromName,
+                  cuit: fromCUIT,
+                  fechaIngreso: new Date(date)
+              },
+              { upsert: true, new: true } // Lo crea si no existe
+          );
+
+          console.log(`✅ Transferencia de ${fromName} guardada en BD correctamente como PENDIENTE.`);
+      } else {
+          console.log(`⏭️ Movimiento ignorado (es una salida): ${direction}`);
+      }
+
+      res.status(200).send('Webhook recibido y procesado');
+      
+  } catch (error) {
+      console.error("❌ Error guardando el webhook de HG Cash en BD:", error);
+      res.status(500).send('Error interno');
+  }
+});
+
 app.post("/match", async (req, res) => {
   try {
     const { kommoId, token } = req.query;
@@ -2282,6 +2338,194 @@ app.post("/matchg", async (req, res) => {
             "Todo en orden, podés iniciar ya, lo mejor para vos hoy ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://whatsapp.com/channel/0029VbCT73y6BIEgIXV4mb27",
             "Todo listo, podés arrancar seguro, que sea una gran jornada ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://whatsapp.com/channel/0029VbCT73y6BIEgIXV4mb27",
             "Todo preparado, podés comenzar tranquilo, éxitos hoy ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas https://whatsapp.com/channel/0029VbCT73y6BIEgIXV4mb27"
+          ];
+
+          const mensajeDeRespuesta = obtenerMensajeAlAzar(mensajesDeAcreditacionYPromocion);
+
+          const dataToUpdate = {
+            custom_fields_values: [
+              {
+                field_id: MENSAJEENVIAR_FIELD_ID,
+                values: [{ value: mensajeDeRespuesta }]
+              }
+            ]
+          };
+
+          console.log(`🔄 Actualizando lead ${leadId} con el nuevo mensaje...`);
+          await axios.patch(`https://${kommoId}.kommo.com/api/v4/leads/${leadId}`, dataToUpdate, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          console.log("✅ Lead actualizado exitosamente en Kommo.");
+        } else {
+          console.log("⚠️ No se actualizó Kommo porque no hay MENSAJEENVIAR_FIELD_ID configurado para este kommoId.");
+        }
+        // --- FIN DE ACTUALIZACIÓN EN KOMMO ---
+
+        return res.status(200).json({ 
+          success: true, 
+          message: "Match exitoso, saldo cargado automáticamente y mensaje enviado.",
+          idTransferencia: cargaPendiente._id 
+        });
+
+      } catch (nextError) {
+        // Si Next.js o Zeus rebotan la carga
+        const errorDetail = nextError.response?.data || nextError.message;
+        console.error(`❌ El panel de Next.js rechazó la autocarga:`, errorDetail);
+        
+        return res.status(200).json({ 
+          success: false, 
+          message: "Match encontrado, pero falló la carga en el panel.",
+          detalles: errorDetail
+        });
+      }
+
+    } else {
+      console.log("❌ No se encontró coincidencia en pendientes.");
+      return res.status(200).json({ success: false, message: "No se encontró coincidencia en pendientes." });
+    }
+
+  } catch (error) {
+    const errorMsg = error.response?.data || error.message;
+    console.error("🔥 Error crítico en el Webhook:", errorMsg);
+    return res.status(500).json({ error: "Error interno", detalles: errorMsg });
+  }
+});
+
+app.post("/matchl", async (req, res) => {
+  try {
+    const { kommoId, token } = req.query;
+    const leadId = req.body?.leads?.add?.[0]?.id || 
+                   req.body?.leads?.update?.[0]?.id || 
+                   req.body['leads[add][0][id]'] || 
+                   req.body['leads[update][0][id]'];
+
+    console.log(`➡️ Iniciando Webhook de Kommo para Lead ID: ${leadId}`);
+
+    if (!leadId || !kommoId || !token) {
+      return res.status(400).json({ error: "Faltan parámetros." });
+    }
+
+    // --- IDENTIFICADOR DEL CAMPO MENSAJE SEGÚN EL KOMMO ID ---
+    let MENSAJEENVIAR_FIELD_ID;
+    if (kommoId === "pablitoochoa233") {
+      MENSAJEENVIAR_FIELD_ID = 181660; // Asegurate de que sea el ID correcto para lafortuna
+    } else {
+      console.warn(`⚠️ Kommo ID ${kommoId} no reconocido
+. No se asignará MENSAJEENVIAR_FIELD_ID, lo que probablemente causará un error al intentar actualizar el lead.`);
+    }
+    // Si tenés más kommoIds (como opendrust090, portodoeste2026, etc), agregalos acá con su respectivo ID de campo.
+    // ---------------------------------------------------------
+
+    const leadResponse = await axios.get(`https://${kommoId}.kommo.com/api/v4/leads/${leadId}?with=custom_fields_values`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+
+    const lead = leadResponse.data;
+    const monto = Number(lead.price);
+    let coelsa = "";
+    let cuil = "";
+
+    if (lead.custom_fields_values) {
+      const coelsaField = lead.custom_fields_values.find(f => f.field_name === 'COELSA');
+      if (coelsaField && coelsaField.values && coelsaField.values.length > 0) coelsa = coelsaField.values[0].value.trim();
+
+      const cuilField = lead.custom_fields_values.find(f => f.field_name === 'CUIL');
+      if (cuilField && cuilField.values && cuilField.values.length > 0) cuil = cuilField.values[0].value.trim();
+    }
+    
+    if (!monto || (!cuil && !coelsa)) {
+      return res.status(200).json({ message: "Datos incompletos en el lead." }); 
+    }
+
+    let cargaPendiente = null;
+
+    // Buscar por CUIL
+    if (cuil) {
+      cargaPendiente = await TransferenciaHgLotus.findOne({
+        estado: "PENDIENTE",
+        monto: monto,
+        cuit: { $regex: new RegExp(`^${cuil}$`, 'i') }
+      });
+    }
+
+    // Buscar por COELSA
+    if (!cargaPendiente && coelsa) {
+      cargaPendiente = await TransferenciaHgLotus.findOne({
+        estado: "PENDIENTE",
+        monto: monto,
+        coelsaCode: { $regex: new RegExp(`^${coelsa}$`, 'i') } 
+      });
+    }
+
+    // 4. RESOLUCIÓN DE LA BÚSQUEDA Y LLAMADA A NEXT.JS
+    if (cargaPendiente) {
+      console.log(`✅ ¡MATCH ENCONTRADO! ID: ${cargaPendiente._id}. Iniciando llamada al panel Next.js...`);
+      
+      const safeUsername = lead.name ? lead.name.trim() : null;
+
+      if (!safeUsername) {
+        console.error("❌ La transferencia no tiene un 'usuarioCasino' guardado para hacer la autocarga.");
+        return res.status(200).json({ message: "Match encontrado, pero falta el usuario de casino." });
+      }
+
+      try {
+        // Le pegamos al endpoint de Next.js pasándole la clave secreta
+        const panelResponse = await axios.post(`https://panellotus.site/api/transferencias/${cargaPendiente._id}/cargar`, {
+          usuarioCasino: safeUsername,
+          apiSecret: "ReySanto2026_AutoCargaSegura" // <-- DEBE SER EXACTAMENTE LA MISMA CLAVE
+        });
+
+        console.log(`✅ Autocarga exitosa mediante el panel Next.js.`);
+        
+        // --- INICIO DE ACTUALIZACIÓN EN KOMMO ---
+        if (MENSAJEENVIAR_FIELD_ID) {
+          const mensajesDeAcreditacionYPromocion = [
+            "Todo en orden, ya podés arrancar, que tengas un gran día ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas.",
+            "Todo preparado, podés iniciar cuando quieras, te deseo lo mejor ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas.",
+            "Todo listo, empezá con confianza, mucha energía positiva ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas.",
+            "Todo ok, podés arrancar ahora, que te vaya excelente ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas.",
+            "Todo en marcha, podés comenzar tranquilo, éxitos hoy ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas.",
+            "Todo preparado, podés dar inicio, que tengas una gran jornada ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas.",
+            "Todo listo, podés empezar ya, lo mejor para vos hoy ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas.",
+            "Todo acomodado, arrancá con calma, te deseo lo mejor ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas.",
+            "Todo listo, podés comenzar con confianza, que sea productivo ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas.",
+            "Ya está todo preparado, podés arrancar tranquilo, éxitos hoy ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas.",
+            "Todo en orden, podés empezar ya, que tengas un día genial ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas.",
+            "Todo listo, podés iniciar cuando quieras, que tengas un gran día ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas.",
+            "Todo preparado, comenzá con confianza, te deseo lo mejor ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas.",
+            "Todo listo, podés arrancar seguro, que te vaya excelente ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas.",
+            "Todo en marcha, ya podés empezar, que sea un día positivo ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas.",
+            "Todo acomodado, podés iniciar ya, fuerza para hoy ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas.",
+            "Todo perfecto, podés arrancar tranquilo, que tengas un día productivo ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas.",
+            "Todo listo, podés dar inicio ya, éxitos en la jornada ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas.",
+            "Todo organizado, podés comenzar con calma, que sea un gran día ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas.",
+            "Todo preparado, ya podés arrancar, mucha fuerza hoy ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas.",
+            "Todo en orden, podés iniciar cuando quieras, éxitos ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas.",
+            "Todo listo, arrancá tranquilo, que tengas un día excelente ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas.",
+            "Todo preparado, podés empezar ya, lo mejor en tu jornada ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas.",
+            "Todo acomodado, podés arrancar seguro, éxitos en la carga ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas.",
+            "Todo listo, podés iniciar ya, que te vaya genial hoy ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas.",
+            "Todo en orden, podés comenzar tranquilo, mucha fuerza ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas.",
+            "Todo preparado, arrancá ya, que tengas un gran día ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas.",
+            "Todo perfecto, podés empezar con confianza, éxitos ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas.",
+            "Todo listo, podés iniciar tranquilo, que sea un gran día ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas.",
+            "Todo preparado, podés comenzar ya, mucha energía ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas.",
+            "Todo en orden, podés arrancar tranquilo, que sea un día excelente ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas.",
+            "Todo listo, podés iniciar ya, mucha fuerza ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas.",
+            "Todo acomodado, podés arrancar cuando quieras, éxitos ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas.",
+            "Todo preparado, podés comenzar con confianza, que sea positivo ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas.",
+            "Todo perfecto, podés iniciar tranquilo, éxitos hoy ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas.",
+            "Todo listo, podés arrancar ya, que sea una buena jornada ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas.",
+            "Todo en marcha, podés comenzar cuando quieras, te deseo lo mejor ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas.",
+            "Todo preparado, podés dar inicio ya, mucha fuerza ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas.",
+            "Todo listo, podés empezar tranquilo, éxitos hoy ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas.",
+            "Todo acomodado, podés arrancar con calma, que sea productivo ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas.",
+            "Todo en orden, podés iniciar ya, lo mejor para vos hoy ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas.",
+            "Todo listo, podés arrancar seguro, que sea una gran jornada ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas.",
+            "Todo preparado, podés comenzar tranquilo, éxitos hoy ❤ Sumate a nuestro grupo VIP y viví experiencias únicas, con beneficios especiales y muchas sorpresas."
           ];
 
           const mensajeDeRespuesta = obtenerMensajeAlAzar(mensajesDeAcreditacionYPromocion);
